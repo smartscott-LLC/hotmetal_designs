@@ -61,6 +61,21 @@ const _state = {
   filterOpacity:    100,
   filterSaturate:   100,
   filterSepia:      0,
+  // Animation
+  animEnabled:      false,
+  animName:         'myAnimation',
+  animDuration:     1000,
+  animTiming:       'ease',
+  animDelay:        0,
+  animIteration:    1,
+  animDirection:    'normal',
+  animFillMode:     'none',
+  // Keyframes (array of {offset, properties})
+  keyframes: [
+    { offset: 0,   props: { opacity: '1',   transform: 'translateY(0)' } },
+    { offset: 50,  props: { opacity: '0.5', transform: 'translateY(-20px)' } },
+    { offset: 100, props: { opacity: '1',   transform: 'translateY(0)' } },
+  ],
 };
 
 let _setCssContent = null;
@@ -143,6 +158,9 @@ export function initThemer({ setCssContent }) {
 
   // Preset Palettes
   _renderPalettes();
+
+  // Animation Builder
+  _initAnimation();
 
   // Action buttons
   document.getElementById('themer-copy-css').addEventListener('click', _copyCss);
@@ -325,13 +343,33 @@ function _generate() {
     lines.push(`opacity: ${(s.opacity / 100).toFixed(2)};`);
   }
 
+  // Animation shorthand
+  if (s.animEnabled && s.keyframes.length >= 2) {
+    const iter = s.animIteration === 1 ? '' : ` ${s.animIteration}`;
+    lines.push(`animation: ${s.animName} ${s.animDuration}ms ${s.animTiming} ${s.animDelay}ms${iter} ${s.animDirection} ${s.animFillMode};`);
+  }
+
   // Build output
   const css = lines.length > 0
     ? `${selector} {\n  ${lines.join('\n  ')}\n}`
     : `/* Select a target element and adjust properties to generate CSS */`;
 
   const output = document.getElementById('themer-css-output');
-  if (output) output.textContent = css;
+  if (output) {
+    let fullCss = css;
+    // Append @keyframes if animation is enabled
+    if (s.animEnabled && s.keyframes.length >= 2) {
+      const kfLines = s.keyframes.map(kf => {
+        const props = Object.entries(kf.props)
+          .filter(([, v]) => v && v !== '0' && v !== '0px' && v !== '0%' && v !== '1' && v !== '100%' && v !== '#ffffff')
+          .map(([k, v]) => `    ${_camelToKebab(k)}: ${v};`)
+          .join('\n');
+        return `  ${kf.offset}% {\n${props}\n  }`;
+      });
+      fullCss += `\n\n@keyframes ${s.animName} {\n${kfLines.join('\n')}\n}`;
+    }
+    output.textContent = fullCss;
+  }
 }
 
 /* ── Copy CSS ───────────────────────────────────────────────── */
@@ -392,46 +430,35 @@ function _resetAll() {
   _state.filterOpacity    = 100;
   _state.filterSaturate   = 100;
   _state.filterSepia      = 0;
-
-  // Reset all UI controls
-  _resetControl('themer-color-text', '#333333');
-  _resetControl('themer-color-bg', '#ffffff');
-  _resetControl('themer-color-accent', '#b8860b');
-  _resetControl('themer-color-link', '#1a73e8');
-  _resetControl('themer-color-border', '#dddddd');
-  _resetControl('themer-color-shadow', '#000000');
-  _resetControl('themer-font-family', 'system-ui, sans-serif');
-  _resetControl('themer-font-size', 16);
-  _resetControl('themer-line-height', 160);
-  _resetControl('themer-font-weight', 400);
-  _resetControl('themer-letter-spacing', 0);
-  _resetControl('themer-text-transform', 'none');
-  _resetControl('themer-border-width', 0);
-  _resetControl('themer-border-style', 'none');
-  _resetControl('themer-border-radius', 0);
-  _resetControl('themer-padding', 0);
-  _resetControl('themer-margin', 0);
-  _resetControl('themer-shadow-x', 0);
-  _resetControl('themer-shadow-y', 4);
-  _resetControl('themer-shadow-blur', 12);
-  _resetControl('themer-shadow-spread', 0);
-  _resetControl('themer-shadow-opacity', 10);
-  _resetControl('themer-gradient-type', 'none');
-  _resetControl('themer-grad-start', '#1a1a1a');
-  _resetControl('themer-grad-end', '#4a4a5a');
-  _resetControl('themer-grad-angle', 135);
-  _resetControl('themer-opacity', 100);
-
-  // Reset filter controls
-  _resetControl('themer-filter-blur', 0);
-  _resetControl('themer-filter-brightness', 100);
-  _resetControl('themer-filter-contrast', 100);
-  _resetControl('themer-filter-saturate', 100);
-  _resetControl('themer-filter-grayscale', 0);
-  _resetControl('themer-filter-hue', 0);
-  _resetControl('themer-filter-invert', 0);
-  _resetControl('themer-filter-sepia', 0);
-  _resetControl('themer-filter-opacity', 100);
+  // Animation
+  _state.animEnabled      = false;
+  _state.animName         = 'myAnimation';
+  _state.animDuration     = 1000;
+  _state.animTiming       = 'ease';
+  _state.animDelay        = 0;
+  _state.animIteration    = 1;
+  _state.animDirection    = 'normal';
+  _state.animFillMode     = 'none';
+  // Keyframes (array of {offset, properties})
+  _state.keyframes = [
+    { offset: 0,   props: { opacity: '1',   transform: 'translateY(0)' } },
+    { offset: 50,  props: { opacity: '0.5', transform: 'translateY(-20px)' } },
+    { offset: 100, props: { opacity: '1',   transform: 'translateY(0)' } },
+  ];
+  document.getElementById('themer-anim-enabled').checked = false;
+  document.getElementById('themer-anim-controls').hidden = true;
+  document.getElementById('themer-anim-name').value = 'myAnimation';
+  document.getElementById('themer-anim-duration').value = 1000;
+  document.getElementById('themer-anim-duration-val').textContent = '1s';
+  document.getElementById('themer-anim-timing').value = 'ease';
+  document.getElementById('themer-anim-delay').value = 0;
+  document.getElementById('themer-anim-delay-val').textContent = '0s';
+  document.getElementById('themer-anim-iteration').value = 1;
+  document.getElementById('themer-anim-iteration-val').textContent = '1';
+  document.getElementById('themer-anim-direction').value = 'normal';
+  document.getElementById('anim-keyframe-editor').hidden = true;
+  _selectedKfIndex = -1;
+  _renderKeyframeList();
 
   // Reset text align buttons
   document.querySelectorAll('.themer-align-btn').forEach(b => {
@@ -635,3 +662,322 @@ const PALETTES = [
     colors: { text: '#3e2723', bg: '#f5f0e8', accent: '#8d6e63', link: '#a1887f', border: '#d7ccc8' },
   },
 ];
+
+/* ── Animation Builder ──────────────────────────────────────── */
+
+const ANIM_PRESETS = [
+  {
+    id: 'fadeIn',
+    label: '✨ Fade In',
+    keyframes: [
+      { offset: 0,   props: { opacity: '0' } },
+      { offset: 100, props: { opacity: '1' } },
+    ],
+  },
+  {
+    id: 'slideUp',
+    label: '⬆ Slide Up',
+    keyframes: [
+      { offset: 0,   props: { opacity: '0', transform: 'translateY(30px)' } },
+      { offset: 100, props: { opacity: '1', transform: 'translateY(0)' } },
+    ],
+  },
+  {
+    id: 'slideLeft',
+    label: '⬅ Slide Left',
+    keyframes: [
+      { offset: 0,   props: { opacity: '0', transform: 'translateX(50px)' } },
+      { offset: 100, props: { opacity: '1', transform: 'translateX(0)' } },
+    ],
+  },
+  {
+    id: 'bounce',
+    label: '🏀 Bounce',
+    keyframes: [
+      { offset: 0,   props: { transform: 'translateY(0)' } },
+      { offset: 30,  props: { transform: 'translateY(-30px)' } },
+      { offset: 50,  props: { transform: 'translateY(0)' } },
+      { offset: 70,  props: { transform: 'translateY(-15px)' } },
+      { offset: 100, props: { transform: 'translateY(0)' } },
+    ],
+  },
+  {
+    id: 'pulse',
+    label: '💓 Pulse',
+    keyframes: [
+      { offset: 0,   props: { transform: 'scale(1)' } },
+      { offset: 50,  props: { transform: 'scale(1.1)' } },
+      { offset: 100, props: { transform: 'scale(1)' } },
+    ],
+  },
+  {
+    id: 'shake',
+    label: '📳 Shake',
+    keyframes: [
+      { offset: 0,   props: { transform: 'translateX(0)' } },
+      { offset: 10,  props: { transform: 'translateX(-10px)' } },
+      { offset: 20,  props: { transform: 'translateX(10px)' } },
+      { offset: 30,  props: { transform: 'translateX(-10px)' } },
+      { offset: 40,  props: { transform: 'translateX(10px)' } },
+      { offset: 50,  props: { transform: 'translateX(0)' } },
+    ],
+  },
+  {
+    id: 'rotate',
+    label: '🔄 Rotate',
+    keyframes: [
+      { offset: 0,   props: { transform: 'rotate(0deg)' } },
+      { offset: 100, props: { transform: 'rotate(360deg)' } },
+    ],
+  },
+  {
+    id: 'flip',
+    label: '🔃 Flip',
+    keyframes: [
+      { offset: 0,   props: { transform: 'perspective(400px) rotateY(0)' } },
+      { offset: 100, props: { transform: 'perspective(400px) rotateY(360deg)' } },
+    ],
+  },
+  {
+    id: 'zoomIn',
+    label: '🔍 Zoom In',
+    keyframes: [
+      { offset: 0,   props: { opacity: '0', transform: 'scale(0.3)' } },
+      { offset: 100, props: { opacity: '1', transform: 'scale(1)' } },
+    ],
+  },
+];
+
+let _selectedKfIndex = -1;
+
+function _initAnimation() {
+  // Enable toggle
+  document.getElementById('themer-anim-enabled').addEventListener('change', (e) => {
+    _state.animEnabled = e.target.checked;
+    document.getElementById('themer-anim-controls').hidden = !e.target.checked;
+    _generate();
+  });
+
+  // Animation properties
+  document.getElementById('themer-anim-name').addEventListener('input', (e) => {
+    _state.animName = e.target.value || 'myAnimation';
+    _generate();
+  });
+  _bindAnimRange('animDuration', 's', v => `${(v / 1000).toFixed(1)}s`);
+  document.getElementById('themer-anim-timing').addEventListener('change', (e) => {
+    _state.animTiming = e.target.value; _generate();
+  });
+  _bindAnimRange('animDelay', 's', v => `${(v / 1000).toFixed(1)}s`);
+  _bindAnimRange('animIteration', '', v => `${v}`);
+  document.getElementById('themer-anim-direction').addEventListener('change', (e) => {
+    _state.animDirection = e.target.value; _generate();
+  });
+
+  // Keyframe list
+  document.getElementById('anim-add-keyframe').addEventListener('click', _addKeyframe);
+
+  // Keyframe editor
+  _bindKfOffset('anim-kf-offset', 'offset', '%');
+  _bindKfSlider('anim-kf-opacity', 'opacity', v => (v / 100).toFixed(1));
+  _bindKfSlider('anim-kf-tx', 'transformTx', v => `${v}px`);
+  _bindKfSlider('anim-kf-ty', 'transformTy', v => `${v}px`);
+  _bindKfSlider('anim-kf-scale', 'transformScale', v => (v / 100).toFixed(1));
+  _bindKfSlider('anim-kf-rotate', 'transformRotate', v => `${v}deg`);
+
+  // Keyframe background color
+  const kfBgPicker = document.getElementById('anim-kf-bg');
+  const kfBgHex = document.getElementById('anim-kf-bg-hex');
+  kfBgPicker.addEventListener('input', () => {
+    kfBgHex.value = kfBgPicker.value;
+    _updateKfProp('backgroundColor', kfBgPicker.value);
+    _generate();
+  });
+  kfBgHex.addEventListener('input', () => {
+    if (/^#[0-9a-fA-F]{6}$/.test(kfBgHex.value)) {
+      kfBgPicker.value = kfBgHex.value;
+      _updateKfProp('backgroundColor', kfBgHex.value);
+      _generate();
+    }
+  });
+
+  // Remove keyframe
+  document.getElementById('anim-kf-remove').addEventListener('click', _removeKeyframe);
+
+  // Presets
+  _renderAnimPresets();
+
+  // Initial render
+  _renderKeyframeList();
+}
+
+function _bindAnimRange(key, unit, formatter) {
+  const slider = document.getElementById(`themer-${_camelToKebab(key)}`);
+  const display = document.getElementById(`themer-${_camelToKebab(key)}-val`);
+  if (!slider) return;
+  slider.addEventListener('input', () => {
+    const val = parseInt(slider.value, 10);
+    _state[key] = val;
+    if (display) display.textContent = formatter ? formatter(val) : `${val}${unit}`;
+    _generate();
+  });
+}
+
+function _bindKfSlider(id, propKey, formatter) {
+  const slider = document.getElementById(id);
+  const display = document.getElementById(`${id}-val`);
+  if (!slider) return;
+  slider.addEventListener('input', () => {
+    const val = parseInt(slider.value, 10);
+    if (display) display.textContent = formatter(val);
+    _updateKfProp(propKey, formatter(val));
+    _generate();
+  });
+}
+
+function _bindKfOffset(id, propKey, unit) {
+  const slider = document.getElementById(id);
+  const display = document.getElementById(`${id}-val`);
+  if (!slider) return;
+  slider.addEventListener('input', () => {
+    const val = parseInt(slider.value, 10);
+    if (display) display.textContent = `${val}${unit}`;
+    if (_selectedKfIndex >= 0 && _selectedKfIndex < _state.keyframes.length) {
+      _state.keyframes[_selectedKfIndex].offset = val;
+      _renderKeyframeList();
+      _generate();
+    }
+  });
+}
+
+function _updateKfProp(key, value) {
+  if (_selectedKfIndex >= 0 && _selectedKfIndex < _state.keyframes.length) {
+    _state.keyframes[_selectedKfIndex].props[key] = value;
+    _renderKeyframeList();
+  }
+}
+
+function _renderKeyframeList() {
+  const list = document.getElementById('anim-keyframes-list');
+  if (!list) return;
+
+  list.innerHTML = _state.keyframes.map((kf, i) => {
+    const preview = Object.entries(kf.props)
+      .filter(([, v]) => v && v !== '0' && v !== '0px' && v !== '1')
+      .map(([k, v]) => `${_camelToKebab(k)}: ${v}`)
+      .join(', ');
+    return `
+      <div class="anim-kf-item ${i === _selectedKfIndex ? 'selected' : ''}" data-idx="${i}">
+        <div class="anim-kf-dot"></div>
+        <span class="anim-kf-offset">${kf.offset}%</span>
+        <span class="anim-kf-preview">${preview || 'no properties'}</span>
+      </div>
+    `;
+  }).join('');
+
+  list.querySelectorAll('.anim-kf-item').forEach(el => {
+    el.addEventListener('click', () => {
+      _selectedKfIndex = parseInt(el.dataset.idx, 10);
+      _renderKeyframeList();
+      _loadKeyframeEditor(_selectedKfIndex);
+    });
+  });
+}
+
+function _loadKeyframeEditor(index) {
+  const kf = _state.keyframes[index];
+  if (!kf) return;
+
+  document.getElementById('anim-keyframe-editor').hidden = false;
+  document.getElementById('anim-kf-title').textContent = `Keyframe at ${kf.offset}%`;
+
+  // Set slider values
+  const setSlider = (id, val) => {
+    const el = document.getElementById(id);
+    if (el) el.value = val;
+  };
+  const setDisplay = (id, val) => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = val;
+  };
+
+  setSlider('anim-kf-offset', kf.offset);
+  setDisplay('anim-kf-offset-val', `${kf.offset}%`);
+
+  const p = kf.props;
+  setSlider('anim-kf-opacity', Math.round(parseFloat(p.opacity || '1') * 100));
+  setDisplay('anim-kf-opacity-val', p.opacity || '1');
+
+  const tx = (p.transformTx || '0px').replace('px', '');
+  setSlider('anim-kf-tx', parseInt(tx) || 0);
+  setDisplay('anim-kf-tx-val', `${tx}px`);
+
+  const ty = (p.transformTy || '0px').replace('px', '');
+  setSlider('anim-kf-ty', parseInt(ty) || 0);
+  setDisplay('anim-kf-ty-val', `${ty}px`);
+
+  const scale = Math.round(parseFloat(p.transformScale || '1') * 100);
+  setSlider('anim-kf-scale', scale);
+  setDisplay('anim-kf-scale-val', (scale / 100).toFixed(1));
+
+  const rotate = (p.transformRotate || '0deg').replace('deg', '');
+  setSlider('anim-kf-rotate', parseInt(rotate) || 0);
+  setDisplay('anim-kf-rotate-val', `${rotate}deg`);
+
+  const bg = p.backgroundColor || '#ffffff';
+  setSlider('anim-kf-bg', bg);
+  document.getElementById('anim-kf-bg-hex').value = bg;
+}
+
+function _addKeyframe() {
+  // Add at midpoint of existing range or at 50%
+  let offset = 50;
+  if (_state.keyframes.length > 0) {
+    const last = _state.keyframes[_state.keyframes.length - 1];
+    offset = Math.min(last.offset + 25, 100);
+  }
+  _state.keyframes.push({
+    offset,
+    props: { opacity: '1', transform: 'translateY(0)' },
+  });
+  _state.keyframes.sort((a, b) => a.offset - b.offset);
+  _selectedKfIndex = _state.keyframes.findIndex(kf => kf.offset === offset);
+  _renderKeyframeList();
+  _loadKeyframeEditor(_selectedKfIndex);
+  _generate();
+}
+
+function _removeKeyframe() {
+  if (_selectedKfIndex < 0 || _state.keyframes.length <= 2) return;
+  _state.keyframes.splice(_selectedKfIndex, 1);
+  _selectedKfIndex = Math.min(_selectedKfIndex, _state.keyframes.length - 1);
+  document.getElementById('anim-keyframe-editor').hidden = _selectedKfIndex < 0;
+  _renderKeyframeList();
+  if (_selectedKfIndex >= 0) _loadKeyframeEditor(_selectedKfIndex);
+  _generate();
+}
+
+function _renderAnimPresets() {
+  const container = document.getElementById('anim-presets');
+  if (!container) return;
+
+  container.innerHTML = ANIM_PRESETS.map(p => `
+    <button class="anim-preset-btn" data-preset="${p.id}">${p.label}</button>
+  `).join('');
+
+  container.querySelectorAll('.anim-preset-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const preset = ANIM_PRESETS.find(p => p.id === btn.dataset.preset);
+      if (!preset) return;
+      _state.keyframes = JSON.parse(JSON.stringify(preset.keyframes));
+      _state.animEnabled = true;
+      document.getElementById('themer-anim-enabled').checked = true;
+      document.getElementById('themer-anim-controls').hidden = false;
+      _selectedKfIndex = 0;
+      _renderKeyframeList();
+      _loadKeyframeEditor(0);
+      _generate();
+    });
+  });
+}
+
+/* ── Filter Binding ─────────────────────────────────────────── */

@@ -497,6 +497,140 @@
         <button class="themer-btn themer-btn-danger" id="themer-reset">↺ Reset All Styles</button>
       </div>
 
+      <!-- ── Animation Builder ────────────────────────────────── -->
+      <div class="themer-section">
+        <div class="themer-section-title">✨ Animation Builder</div>
+
+        <div class="themer-row">
+          <label class="themer-label" style="display:flex;align-items:center;gap:8px;">
+            <input type="checkbox" id="themer-anim-enabled" />
+            <span>Enable Animation</span>
+          </label>
+        </div>
+
+        <div id="themer-anim-controls" hidden>
+
+          <!-- Animation Properties -->
+          <div class="themer-row">
+            <label class="themer-label">Animation Name</label>
+            <input type="text" id="themer-anim-name" class="themer-input" value="myAnimation" />
+          </div>
+          <div class="themer-row">
+            <label class="themer-label">Duration</label>
+            <div class="themer-range-row">
+              <input type="range" id="themer-anim-duration" class="themer-range" min="100" max="10000" value="1000" step="100" />
+              <span class="themer-range-val" id="themer-anim-duration-val">1s</span>
+            </div>
+          </div>
+          <div class="themer-row">
+            <label class="themer-label">Timing Function</label>
+            <select id="themer-anim-timing" class="themer-select">
+              <option value="ease">ease</option>
+              <option value="linear">linear</option>
+              <option value="ease-in">ease-in</option>
+              <option value="ease-out">ease-out</option>
+              <option value="ease-in-out">ease-in-out</option>
+            </select>
+          </div>
+          <div class="themer-row">
+            <label class="themer-label">Delay</label>
+            <div class="themer-range-row">
+              <input type="range" id="themer-anim-delay" class="themer-range" min="0" max="5000" value="0" step="100" />
+              <span class="themer-range-val" id="themer-anim-delay-val">0s</span>
+            </div>
+          </div>
+          <div class="themer-row">
+            <label class="themer-label">Iterations</label>
+            <div class="themer-range-row">
+              <input type="range" id="themer-anim-iteration" class="themer-range" min="1" max="10" value="1" />
+              <span class="themer-range-val" id="themer-anim-iteration-val">1</span>
+            </div>
+          </div>
+          <div class="themer-row">
+            <label class="themer-label">Direction</label>
+            <select id="themer-anim-direction" class="themer-select">
+              <option value="normal">normal</option>
+              <option value="reverse">reverse</option>
+              <option value="alternate">alternate</option>
+              <option value="alternate-reverse">alternate-reverse</option>
+            </select>
+          </div>
+
+          <!-- Keyframe Timeline -->
+          <div class="anim-timeline" id="anim-timeline">
+            <div class="anim-timeline-header">
+              <span>Keyframes</span>
+              <button class="anim-add-keyframe" id="anim-add-keyframe" title="Add keyframe">+ Add</button>
+            </div>
+            <div class="anim-keyframes-list" id="anim-keyframes-list"></div>
+          </div>
+
+          <!-- Keyframe Editor (shown when editing) -->
+          <div class="anim-keyframe-editor" id="anim-keyframe-editor" hidden>
+            <div class="anim-kf-header">
+              <span class="anim-kf-title" id="anim-kf-title">Keyframe at 0%</span>
+              <button class="anim-kf-remove" id="anim-kf-remove" title="Remove keyframe">✕</button>
+            </div>
+            <div class="themer-row">
+              <label class="themer-label">Offset</label>
+              <div class="themer-range-row">
+                <input type="range" id="anim-kf-offset" class="themer-range" min="0" max="100" value="0" />
+                <span class="themer-range-val" id="anim-kf-offset-val">0%</span>
+              </div>
+            </div>
+            <div class="themer-row">
+              <label class="themer-label">Opacity</label>
+              <div class="themer-range-row">
+                <input type="range" id="anim-kf-opacity" class="themer-range" min="0" max="100" value="100" />
+                <span class="themer-range-val" id="anim-kf-opacity-val">1</span>
+              </div>
+            </div>
+            <div class="themer-row">
+              <label class="themer-label">Translate X</label>
+              <div class="themer-range-row">
+                <input type="range" id="anim-kf-tx" class="themer-range" min="-200" max="200" value="0" />
+                <span class="themer-range-val" id="anim-kf-tx-val">0px</span>
+              </div>
+            </div>
+            <div class="themer-row">
+              <label class="themer-label">Translate Y</label>
+              <div class="themer-range-row">
+                <input type="range" id="anim-kf-ty" class="themer-range" min="-200" max="200" value="0" />
+                <span class="themer-range-val" id="anim-kf-ty-val">0px</span>
+              </div>
+            </div>
+            <div class="themer-row">
+              <label class="themer-label">Scale</label>
+              <div class="themer-range-row">
+                <input type="range" id="anim-kf-scale" class="themer-range" min="0" max="200" value="100" />
+                <span class="themer-range-val" id="anim-kf-scale-val">1</span>
+              </div>
+            </div>
+            <div class="themer-row">
+              <label class="themer-label">Rotate</label>
+              <div class="themer-range-row">
+                <input type="range" id="anim-kf-rotate" class="themer-range" min="-360" max="360" value="0" />
+                <span class="themer-range-val" id="anim-kf-rotate-val">0°</span>
+              </div>
+            </div>
+            <div class="themer-color-row">
+              <label class="themer-color-label">Background</label>
+              <div class="themer-color-wrapper">
+                <input type="color" id="anim-kf-bg" class="themer-color-picker" value="#ffffff" />
+                <input type="text" id="anim-kf-bg-hex" class="themer-color-hex" value="#ffffff" maxlength="7" />
+              </div>
+            </div>
+          </div>
+
+          <!-- Preset Animations -->
+          <div class="themer-row">
+            <label class="themer-label">Presets</label>
+            <div class="anim-presets" id="anim-presets"></div>
+          </div>
+
+        </div>
+      </div>
+
     </div>
   </aside>
   <!-- ── Themer Backdrop (mobile) ────────────────────────────── -->
