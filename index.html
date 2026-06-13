@@ -497,6 +497,137 @@
         <button class="themer-btn themer-btn-danger" id="themer-reset">↺ Reset All Styles</button>
       </div>
 
+      <!-- ── Layout Editor ────────────────────────────────────── -->
+      <div class="themer-section">
+        <div class="themer-section-title">📐 Layout Editor</div>
+
+        <div class="themer-row">
+          <label class="themer-label">Display Mode</label>
+          <select id="themer-layout-mode" class="themer-select">
+            <option value="none">None</option>
+            <option value="flex">Flexbox</option>
+            <option value="grid">CSS Grid</option>
+          </select>
+        </div>
+
+        <!-- Flexbox Controls -->
+        <div id="themer-flex-controls" hidden>
+          <div class="themer-row">
+            <label class="themer-label">Direction</label>
+            <div class="themer-btn-group">
+              <button class="themer-align-btn active" data-flex-dir="row" title="Row">↔</button>
+              <button class="themer-align-btn" data-flex-dir="column" title="Column">↕</button>
+              <button class="themer-align-btn" data-flex-dir="row-reverse" title="Row Reverse">→←</button>
+              <button class="themer-align-btn" data-flex-dir="column-reverse" title="Column Reverse">↓↑</button>
+            </div>
+          </div>
+          <div class="themer-row">
+            <label class="themer-label">Wrap</label>
+            <select id="themer-flex-wrap" class="themer-select">
+              <option value="nowrap">No Wrap</option>
+              <option value="wrap">Wrap</option>
+              <option value="wrap-reverse">Wrap Reverse</option>
+            </select>
+          </div>
+          <div class="themer-row">
+            <label class="themer-label">Justify Content</label>
+            <select id="themer-justify-content" class="themer-select">
+              <option value="flex-start">Start</option>
+              <option value="center">Center</option>
+              <option value="flex-end">End</option>
+              <option value="space-between">Space Between</option>
+              <option value="space-around">Space Around</option>
+              <option value="space-evenly">Space Evenly</option>
+            </select>
+          </div>
+          <div class="themer-row">
+            <label class="themer-label">Align Items</label>
+            <select id="themer-align-items" class="themer-select">
+              <option value="stretch">Stretch</option>
+              <option value="flex-start">Start</option>
+              <option value="center">Center</option>
+              <option value="flex-end">End</option>
+              <option value="baseline">Baseline</option>
+            </select>
+          </div>
+          <div class="themer-row">
+            <label class="themer-label">Gap</label>
+            <div class="themer-range-row">
+              <input type="range" id="themer-flexGap" class="themer-range" min="0" max="80" value="0" />
+              <span class="themer-range-val" id="themer-flexGap-val">0px</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Grid Controls -->
+        <div id="themer-grid-controls" hidden>
+          <div class="themer-row">
+            <label class="themer-label">Columns</label>
+            <input type="text" id="themer-grid-cols" class="themer-input" value="1fr 1fr" placeholder="1fr 1fr 1fr" />
+          </div>
+          <div class="themer-row">
+            <label class="themer-label">Rows</label>
+            <input type="text" id="themer-grid-rows" class="themer-input" value="auto" placeholder="auto" />
+          </div>
+          <div class="themer-row">
+            <label class="themer-label">Gap</label>
+            <div class="themer-range-row">
+              <input type="range" id="themer-gridGap" class="themer-range" min="0" max="80" value="16" />
+              <span class="themer-range-val" id="themer-gridGap-val">16px</span>
+            </div>
+          </div>
+          <div class="themer-row">
+            <label class="themer-label">Auto Flow</label>
+            <select id="themer-grid-auto-flow" class="themer-select">
+              <option value="row">Row</option>
+              <option value="column">Column</option>
+              <option value="row dense">Row Dense</option>
+              <option value="column dense">Column Dense</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Child Properties -->
+        <div id="themer-child-controls" hidden>
+          <div class="themer-row">
+            <label class="themer-label">Flex Grow</label>
+            <div class="themer-range-row">
+              <input type="range" id="themer-childFlexGrow" class="themer-range" min="0" max="10" value="0" />
+              <span class="themer-range-val" id="themer-childFlexGrow-val">0</span>
+            </div>
+          </div>
+          <div class="themer-row">
+            <label class="themer-label">Flex Shrink</label>
+            <div class="themer-range-row">
+              <input type="range" id="themer-childFlexShrink" class="themer-range" min="0" max="10" value="1" />
+              <span class="themer-range-val" id="themer-childFlexShrink-val">1</span>
+            </div>
+          </div>
+          <div class="themer-row">
+            <label class="themer-label">Flex Basis</label>
+            <input type="text" id="themer-child-flex-basis" class="themer-input" value="auto" placeholder="auto, 200px, 25%" />
+          </div>
+          <div class="themer-row">
+            <label class="themer-label">Align Self</label>
+            <select id="themer-child-align-self" class="themer-select">
+              <option value="auto">Auto</option>
+              <option value="flex-start">Start</option>
+              <option value="center">Center</option>
+              <option value="flex-end">End</option>
+              <option value="stretch">Stretch</option>
+              <option value="baseline">Baseline</option>
+            </select>
+          </div>
+          <div class="themer-row">
+            <label class="themer-label">Order</label>
+            <div class="themer-range-row">
+              <input type="range" id="themer-childOrder" class="themer-range" min="-10" max="10" value="0" />
+              <span class="themer-range-val" id="themer-childOrder-val">0</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <!-- ── Animation Builder ────────────────────────────────── -->
       <div class="themer-section">
         <div class="themer-section-title">✨ Animation Builder</div>
