@@ -27,6 +27,7 @@ A complete visual CSS editor — no coding required:
 - **Colors** — text, background, accent, link, border, shadow with color pickers + hex input
 - **Typography** — font family (10+ fonts), size, weight, line height, letter spacing, text align, text transform
 - **Borders** — width, color, style (solid/dashed/dotted/double/groove/ridge), radius
+- **Outline** — width, color, style (solid/dashed/dotted/double/groove/ridge), offset (independent of border)
 - **Spacing** — padding and margin sliders
 - **Shadows** — X/Y offset, blur, spread, color, and opacity
 - **Gradients** — linear and radial with color stops and angle control
@@ -41,6 +42,7 @@ A complete visual CSS editor — no coding required:
 - **OPFS storage** — images stored locally in the browser, persist across sessions
 - **Thumbnail grid** — visual gallery of stored images
 - **One-click insert** — adds `<img>` tag at cursor position
+- **Image Border & Outline** — configure border (width, color, style, radius) and outline (width, color, style, offset) before inserting — generates inline styles on the `<img>` tag
 - **Storage meter** — see how much space you're using
 - **Supports** — PNG, JPG, GIF, WebP, SVG, AVIF
 
@@ -106,7 +108,7 @@ vercel
 2. **Edit code** — type HTML/CSS/JS in the editor tabs
 3. **See changes instantly** — the preview updates as you type
 4. **Style visually** — click 🎨 Style to open the Style Studio
-5. **Add images** — click 🖼️ Images to upload and manage images
+5. **Add images** — click 🖼️ Images to upload and manage images, configure border & outline styles before inserting
 6. **Get AI help** — click the gold orb in the bottom-right corner
 7. **Save** — press `Ctrl+S` or click 💾 Save
 8. **Export** — click 📤 Export to download your project
@@ -123,8 +125,8 @@ vercel
 | `Ctrl+Space` | Autocomplete |
 
 ### Style Studio Workflow
-1. Select a **target element** (body, h1, p, button, etc.)
-2. Adjust colors, typography, borders, spacing, shadows
+1. Select a **target element** (body, h1, p, button, img, etc.)
+2. Adjust colors, typography, borders, outline, spacing, shadows
 3. Add gradients, filters, or animations
 4. Pick a preset palette for instant theming
 5. Set up Flexbox or Grid layouts
@@ -137,6 +139,18 @@ vercel
 4. Click keyframes in the timeline to edit properties (opacity, translate, scale, rotate, background)
 5. Add/remove keyframes with the **+ Add** button
 6. Copy or apply the generated CSS
+
+### Image Border & Outline Workflow
+1. Open the **Image Manager** (🖼️ Images)
+2. **Select an image** from the thumbnail grid
+3. In the **Border & Outline** section:
+   - Set **border** width, color, style, and radius
+   - Set **outline** width, color, style, and offset (outline sits outside the border)
+4. Click **⬆ Insert into HTML** — the `<img>` tag includes inline styles like:
+   ```html
+   <img src="images/photo.png" alt="photo.png" style="border: 3px solid #b8860b; border-radius: 8px; outline: 2px dashed #d4a843; outline-offset: 4px;" />
+   ```
+5. Or use the **Style Studio** → select `img — Image` target to apply outline/border via CSS rules
 
 ---
 

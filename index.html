@@ -147,6 +147,7 @@
           <option value="a">a — Link</option>
           <option value="button">button — Button</option>
           <option value="input">input — Input Field</option>
+          <option value="img">img — Image</option>
           <option value="card">.card — Card</option>
           <option value="container">.container — Container</option>
           <option value="custom">Custom Selector…</option>
@@ -292,6 +293,41 @@
           <div class="themer-range-row">
             <input type="range" id="themer-border-radius" class="themer-range" min="0" max="50" value="0" />
             <span class="themer-range-val" id="themer-border-radius-val">0px</span>
+          </div>
+        </div>
+
+        <!-- ── Outline ───────────────────────────────────────── -->
+        <div class="themer-row">
+          <label class="themer-label">Outline Width</label>
+          <div class="themer-range-row">
+            <input type="range" id="themer-outline-width" class="themer-range" min="0" max="20" value="0" />
+            <span class="themer-range-val" id="themer-outline-width-val">0px</span>
+          </div>
+        </div>
+        <div class="themer-color-row">
+          <label class="themer-color-label">Outline Color</label>
+          <div class="themer-color-wrapper">
+            <input type="color" id="themer-color-outline" class="themer-color-picker" value="#b8860b" />
+            <input type="text" id="themer-color-outline-hex" class="themer-color-hex" value="#b8860b" maxlength="7" />
+          </div>
+        </div>
+        <div class="themer-row">
+          <label class="themer-label">Outline Style</label>
+          <select id="themer-outline-style" class="themer-select">
+            <option value="none">None</option>
+            <option value="solid">Solid</option>
+            <option value="dashed">Dashed</option>
+            <option value="dotted">Dotted</option>
+            <option value="double">Double</option>
+            <option value="groove">Groove</option>
+            <option value="ridge">Ridge</option>
+          </select>
+        </div>
+        <div class="themer-row">
+          <label class="themer-label">Outline Offset</label>
+          <div class="themer-range-row">
+            <input type="range" id="themer-outline-offset" class="themer-range" min="-20" max="20" value="0" />
+            <span class="themer-range-val" id="themer-outline-offset-val">0px</span>
           </div>
         </div>
       </div>
@@ -816,6 +852,82 @@
       <div class="themer-section" id="image-actions" hidden>
         <div class="themer-section-title" id="image-selected-name">Selected</div>
         <div class="image-meta" id="image-meta"></div>
+
+        <!-- ── Image Border / Outline ───────────────────────── -->
+        <div class="image-style-controls">
+          <div class="image-style-title">🖌 Border &amp; Outline</div>
+
+          <div class="themer-row">
+            <label class="themer-label">Border Width</label>
+            <div class="themer-range-row">
+              <input type="range" id="image-border-width" class="themer-range" min="0" max="20" value="0" />
+              <span class="themer-range-val" id="image-border-width-val">0px</span>
+            </div>
+          </div>
+          <div class="themer-color-row">
+            <label class="themer-color-label">Border Color</label>
+            <div class="themer-color-wrapper">
+              <input type="color" id="image-border-color" class="themer-color-picker" value="#b8860b" />
+              <input type="text" id="image-border-color-hex" class="themer-color-hex" value="#b8860b" maxlength="7" />
+            </div>
+          </div>
+          <div class="themer-row">
+            <label class="themer-label">Border Style</label>
+            <select id="image-border-style" class="themer-select">
+              <option value="none">None</option>
+              <option value="solid">Solid</option>
+              <option value="dashed">Dashed</option>
+              <option value="dotted">Dotted</option>
+              <option value="double">Double</option>
+              <option value="groove">Groove</option>
+              <option value="ridge">Ridge</option>
+            </select>
+          </div>
+          <div class="themer-row">
+            <label class="themer-label">Border Radius</label>
+            <div class="themer-range-row">
+              <input type="range" id="image-border-radius" class="themer-range" min="0" max="50" value="0" />
+              <span class="themer-range-val" id="image-border-radius-val">0px</span>
+            </div>
+          </div>
+
+          <div class="image-style-divider"></div>
+
+          <div class="themer-row">
+            <label class="themer-label">Outline Width</label>
+            <div class="themer-range-row">
+              <input type="range" id="image-outline-width" class="themer-range" min="0" max="20" value="0" />
+              <span class="themer-range-val" id="image-outline-width-val">0px</span>
+            </div>
+          </div>
+          <div class="themer-color-row">
+            <label class="themer-color-label">Outline Color</label>
+            <div class="themer-color-wrapper">
+              <input type="color" id="image-outline-color" class="themer-color-picker" value="#b8860b" />
+              <input type="text" id="image-outline-color-hex" class="themer-color-hex" value="#b8860b" maxlength="7" />
+            </div>
+          </div>
+          <div class="themer-row">
+            <label class="themer-label">Outline Style</label>
+            <select id="image-outline-style" class="themer-select">
+              <option value="none">None</option>
+              <option value="solid">Solid</option>
+              <option value="dashed">Dashed</option>
+              <option value="dotted">Dotted</option>
+              <option value="double">Double</option>
+              <option value="groove">Groove</option>
+              <option value="ridge">Ridge</option>
+            </select>
+          </div>
+          <div class="themer-row">
+            <label class="themer-label">Outline Offset</label>
+            <div class="themer-range-row">
+              <input type="range" id="image-outline-offset" class="themer-range" min="-20" max="20" value="0" />
+              <span class="themer-range-val" id="image-outline-offset-val">0px</span>
+            </div>
+          </div>
+        </div>
+
         <button class="themer-btn themer-btn-apply" id="image-insert-btn">⬆ Insert into HTML</button>
         <button class="themer-btn" id="image-copy-url-btn">⎘ Copy as URL</button>
         <button class="themer-btn themer-btn-danger" id="image-delete-btn">🗑 Delete</button>

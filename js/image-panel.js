@@ -204,7 +204,42 @@ async function _loadImageMeta(name) {
 function _insertSelected() {
   if (!_selectedImage || !_insertCallback) return;
   const name = _selectedImage;
-  const html = `<img src="images/${name}" alt="${name}" />`;
+  const attrs = [];
+
+  // Border styles
+  const borderWidth = parseInt(document.getElementById('image-border-width').value, 10) || 0;
+  const borderColor = document.getElementById('image-border-color').value || '#b8860b';
+  const borderStyle = document.getElementById('image-border-style').value || 'none';
+  const borderRadius = parseInt(document.getElementById('image-border-radius').value, 10) || 0;
+
+  // Outline styles
+  const outlineWidth = parseInt(document.getElementById('image-outline-width').value, 10) || 0;
+  const outlineColor = document.getElementById('image-outline-color').value || '#b8860b';
+  const outlineStyle = document.getElementById('image-outline-style').value || 'none';
+  const outlineOffset = parseInt(document.getElementById('image-outline-offset').value, 10) || 0;
+
+  // Build inline style
+  const styles = [];
+  if (borderWidth > 0 && borderStyle !== 'none') {
+    styles.push(`border: ${borderWidth}px ${borderStyle} ${borderColor}`);
+  }
+  if (borderRadius > 0) {
+    styles.push(`border-radius: ${borderRadius}px`);
+  }
+  if (outlineWidth > 0 && outlineStyle !== 'none') {
+    styles.push(`outline: ${outlineWidth}px ${outlineStyle} ${outlineColor}`);
+  }
+  if (outlineOffset !== 0 && outlineWidth > 0 && outlineStyle !== 'none') {
+    styles.push(`outline-offset: ${outlineOffset}px`);
+  }
+
+  // Build style attribute
+  let styleAttr = '';
+  if (styles.length > 0) {
+    styleAttr = ` style="${styles.join('; ')};"`;
+  }
+
+  const html = `<img src="images/${name}" alt="${name}"${styleAttr} />`;
   _insertCallback(html);
 }
 
