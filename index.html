@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="SmarTools HTML Studio — AI-powered visual HTML builder" />
+  <meta name="theme-color" content="#1a1a1a" />
+  <title>SmarTools HTML Studio</title>
+  <link rel="manifest" href="./manifest.json" />
+  <link rel="icon" type="image/svg+xml" href="./icon.svg" />
+  <link rel="stylesheet" href="./css/app.css" />
+  <link rel="stylesheet" href="./css/ai-widget.css" />
+  <link rel="stylesheet" href="./css/themer.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/dracula.min.css" />
+</head>
+<body class="app-body">
+
+  <!-- ── Top Bar ─────────────────────────────────────────────── -->
+  <header id="topbar" class="topbar">
+    <div class="topbar-left">
+      <div class="topbar-logo">
+        <svg width="24" height="24" viewBox="0 0 512 512" aria-hidden="true">
+          <rect width="512" height="512" rx="80" fill="#1a1a1a"/>
+          <text x="256" y="200" font-family="monospace" font-size="160" fill="#c0c0c0"
+                text-anchor="middle" dominant-baseline="middle">⬡</text>
+          <text x="256" y="340" font-family="monospace" font-size="90" fill="#b8860b"
+                text-anchor="middle" dominant-baseline="middle">H</text>
+          <circle cx="150" cy="340" r="18" fill="#b8860b"/>
+          <circle cx="362" cy="340" r="18" fill="#b8860b"/>
+          <line x1="168" y1="340" x2="220" y2="340" stroke="#c0c0c0" stroke-width="6"/>
+          <line x1="292" y1="340" x2="344" y2="340" stroke="#c0c0c0" stroke-width="6"/>
+        </svg>
+      </div>
+      <span class="topbar-title">SmarTools <strong>HTML Studio</strong></span>
+      <span class="topbar-badge" id="file-badge">Untitled</span>
+      <div class="topbar-sep"></div>
+      <button class="topbar-btn topbar-btn-icon" id="btn-undo" title="Undo (Ctrl+Z)">↩</button>
+      <button class="topbar-btn topbar-btn-icon" id="btn-redo" title="Redo (Ctrl+Shift+Z)">↪</button>
+    </div>
+    <div class="topbar-center">
+      <div class="tab-bar" id="tab-bar">
+        <button class="tab tab-active" data-tab="html">HTML</button>
+        <button class="tab" data-tab="css">CSS</button>
+        <button class="tab" data-tab="js">JS</button>
+      </div>
+    </div>
+    <div class="topbar-right">
+      <button class="topbar-btn" id="btn-save" title="Save to Vault">💾 Save</button>
+      <button class="topbar-btn" id="btn-export" title="Export HTML">📤 Export</button>
+      <button class="topbar-btn" id="btn-cmd" title="Command Palette (Ctrl+K)">⌘ K</button>
+      <div class="topbar-sep"></div>
+      <button class="topbar-btn" id="btn-themer" title="Style Panel">🎨 Style</button>
+      <button class="topbar-btn" id="btn-images" title="Image Manager">🖼️ Images</button>
+    </div>
+  </header>
+
+  <!-- ── Main Split View ─────────────────────────────────────── -->
+  <main id="main" class="main">
+    <!-- Editor Pane -->
+    <section id="editor-pane" class="pane editor-pane">
+      <div class="pane-header">
+        <span class="pane-label" id="pane-label">HTML</span>
+        <span class="pane-hint" id="cursor-pos">Ln 1, Col 1</span>
+      </div>
+      <div id="editor-container" class="editor-container"></div>
+    </section>
+
+    <!-- Divider -->
+    <div id="divider" class="divider" role="separator" aria-orientation="vertical"
+         aria-label="Resize panels" tabindex="0"></div>
+
+    <!-- Preview Pane -->
+    <section id="preview-pane" class="pane preview-pane">
+      <div class="pane-header">
+        <span class="pane-label">Preview</span>
+        <div class="preview-actions">
+          <button class="preview-btn" id="btn-refresh" title="Refresh Preview">↻</button>
+          <button class="preview-btn" id="btn-fullscreen" title="Fullscreen Preview">⛶</button>
+        </div>
+      </div>
+      <div id="preview-viewport" class="preview-viewport">
+        <iframe id="preview-frame" class="preview-frame"
+                title="Live preview"></iframe>
+      </div>
+    </section>
+  </main>
+
+  <!-- ── Status Bar ──────────────────────────────────────────── -->
+  <footer id="statusbar" class="statusbar">
+    <span class="status-item" id="status-msg">Ready</span>
+    <span class="status-item" id="status-zoom">100%</span>
+    <span class="status-item" id="status-vault">Vault: checking…</span>
+  </footer>
+
+  <!-- ── SmartBar Overlay ────────────────────────────────────── -->
+  <div id="smartbar-overlay" class="smartbar-overlay" hidden>
+    <div class="smartbar-box">
+      <input type="text" id="smartbar-input" class="smartbar-input"
+             placeholder="Search commands, templates, snippets…" autocomplete="off" />
+      <div id="smartbar-results" class="smartbar-results"></div>
+    </div>
+  </div>
+
+  <!-- ── Export Modal ────────────────────────────────────────── -->
+  <div id="export-modal" class="modal-overlay" hidden>
+    <div class="modal-box">
+      <h3 class="modal-title">Export</h3>
+      <div class="modal-options">
+        <button class="modal-option" id="export-html">
+          <span class="modal-option-icon">📄</span>
+          <span class="modal-option-label">Standalone HTML</span>
+          <span class="modal-option-desc">Single .html file with all assets inlined</span>
+        </button>
+        <button class="modal-option" id="export-zip">
+          <span class="modal-option-icon">📦</span>
+          <span class="modal-option-label">ZIP Package</span>
+          <span class="modal-option-desc">Separate HTML, CSS, and JS files</span>
+        </button>
+        <button class="modal-option" id="export-copy">
+          <span class="modal-option-icon">📋</span>
+          <span class="modal-option-label">Copy HTML</span>
+          <span class="modal-option-desc">Copy the combined HTML to clipboard</span>
+        </button>
+      </div>
+      <button class="modal-close" id="export-close">Close</button>
+    </div>
+  </div>
+
+  <!-- ── Themer Slide-Out Panel ───────────────────────────────── -->
+  <aside id="themer-panel" class="themer-panel" hidden>
+    <div class="themer-header">
+      <span class="themer-header-title">🎨 Style Studio</span>
+      <button class="themer-close" id="themer-close" title="Close">✕</button>
+    </div>
+    <div class="themer-body">
+
+      <!-- ── Target Selector ─────────────────────────────────── -->
+      <div class="themer-section">
+        <div class="themer-section-title">Target Element</div>
+        <select id="themer-target" class="themer-select">
+          <option value="body">body — Page Background</option>
+          <option value="h1">h1 — Main Heading</option>
+          <option value="h2">h2 — Sub Heading</option>
+          <option value="h3">h3 — Section Heading</option>
+          <option value="p">p — Paragraph</option>
+          <option value="a">a — Link</option>
+          <option value="button">button — Button</option>
+          <option value="input">input — Input Field</option>
+          <option value="card">.card — Card</option>
+          <option value="container">.container — Container</option>
+          <option value="custom">Custom Selector…</option>
+        </select>
+        <input type="text" id="themer-custom-target" class="themer-input" placeholder=".my-class or #my-id" hidden />
+      </div>
+
+      <!-- ── Colors ──────────────────────────────────────────── -->
+      <div class="themer-section">
+        <div class="themer-section-title">Colors</div>
+        <div class="themer-color-row">
+          <label class="themer-color-label">Text</label>
+          <div class="themer-color-wrapper">
+            <input type="color" id="themer-color-text" class="themer-color-picker" value="#333333" />
+            <input type="text" id="themer-color-text-hex" class="themer-color-hex" value="#333333" maxlength="7" />
+          </div>
+        </div>
+        <div class="themer-color-row">
+          <label class="themer-color-label">Background</label>
+          <div class="themer-color-wrapper">
+            <input type="color" id="themer-color-bg" class="themer-color-picker" value="#ffffff" />
+            <input type="text" id="themer-color-bg-hex" class="themer-color-hex" value="#ffffff" maxlength="7" />
+          </div>
+        </div>
+        <div class="themer-color-row">
+          <label class="themer-color-label">Accent</label>
+          <div class="themer-color-wrapper">
+            <input type="color" id="themer-color-accent" class="themer-color-picker" value="#b8860b" />
+            <input type="text" id="themer-color-accent-hex" class="themer-color-hex" value="#b8860b" maxlength="7" />
+          </div>
+        </div>
+        <div class="themer-color-row">
+          <label class="themer-color-label">Link</label>
+          <div class="themer-color-wrapper">
+            <input type="color" id="themer-color-link" class="themer-color-picker" value="#1a73e8" />
+            <input type="text" id="themer-color-link-hex" class="themer-color-hex" value="#1a73e8" maxlength="7" />
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Typography ──────────────────────────────────────── -->
+      <div class="themer-section">
+        <div class="themer-section-title">Typography</div>
+        <div class="themer-row">
+          <label class="themer-label">Font Family</label>
+          <select id="themer-font-family" class="themer-select">
+            <option value="system-ui, sans-serif">System Default</option>
+            <option value="Inter, sans-serif">Inter</option>
+            <option value="'Segoe UI', sans-serif">Segoe UI</option>
+            <option value="Roboto, sans-serif">Roboto</option>
+            <option value="'Open Sans', sans-serif">Open Sans</option>
+            <option value="Lato, sans-serif">Lato</option>
+            <option value="Montserrat, sans-serif">Montserrat</option>
+            <option value="'Playfair Display', serif">Playfair Display</option>
+            <option value="Georgia, serif">Georgia</option>
+            <option value="'Courier New', monospace">Courier New</option>
+            <option value="'JetBrains Mono', monospace">JetBrains Mono</option>
+          </select>
+        </div>
+        <div class="themer-row">
+          <label class="themer-label">Font Size</label>
+          <div class="themer-range-row">
+            <input type="range" id="themer-font-size" class="themer-range" min="8" max="72" value="16" />
+            <span class="themer-range-val" id="themer-font-size-val">16px</span>
+          </div>
+        </div>
+        <div class="themer-row">
+          <label class="themer-label">Line Height</label>
+          <div class="themer-range-row">
+            <input type="range" id="themer-line-height" class="themer-range" min="100" max="300" value="160" />
+            <span class="themer-range-val" id="themer-line-height-val">1.6</span>
+          </div>
+        </div>
+        <div class="themer-row">
+          <label class="themer-label">Font Weight</label>
+          <select id="themer-font-weight" class="themer-select">
+            <option value="300">Light (300)</option>
+            <option value="400" selected>Normal (400)</option>
+            <option value="500">Medium (500)</option>
+            <option value="600">Semi Bold (600)</option>
+            <option value="700">Bold (700)</option>
+            <option value="800">Extra Bold (800)</option>
+          </select>
+        </div>
+        <div class="themer-row">
+          <label class="themer-label">Letter Spacing</label>
+          <div class="themer-range-row">
+            <input type="range" id="themer-letter-spacing" class="themer-range" min="-5" max="20" value="0" />
+            <span class="themer-range-val" id="themer-letter-spacing-val">0px</span>
+          </div>
+        </div>
+        <div class="themer-row">
+          <label class="themer-label">Text Align</label>
+          <div class="themer-btn-group">
+            <button class="themer-align-btn active" data-align="left">◀</button>
+            <button class="themer-align-btn" data-align="center">◆</button>
+            <button class="themer-align-btn" data-align="right">▶</button>
+            <button class="themer-align-btn" data-align="justify">☰</button>
+          </div>
+        </div>
+        <div class="themer-row">
+          <label class="themer-label">Text Transform</label>
+          <select id="themer-text-transform" class="themer-select">
+            <option value="none">None</option>
+            <option value="uppercase">UPPERCASE</option>
+            <option value="lowercase">lowercase</option>
+            <option value="capitalize">Capitalize</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- ── Borders ─────────────────────────────────────────── -->
+      <div class="themer-section">
+        <div class="themer-section-title">Borders</div>
+        <div class="themer-row">
+          <label class="themer-label">Border Width</label>
+          <div class="themer-range-row">
+            <input type="range" id="themer-border-width" class="themer-range" min="0" max="20" value="0" />
+            <span class="themer-range-val" id="themer-border-width-val">0px</span>
+          </div>
+        </div>
+        <div class="themer-color-row">
+          <label class="themer-color-label">Border Color</label>
+          <div class="themer-color-wrapper">
+            <input type="color" id="themer-color-border" class="themer-color-picker" value="#dddddd" />
+            <input type="text" id="themer-color-border-hex" class="themer-color-hex" value="#dddddd" maxlength="7" />
+          </div>
+        </div>
+        <div class="themer-row">
+          <label class="themer-label">Border Style</label>
+          <select id="themer-border-style" class="themer-select">
+            <option value="none">None</option>
+            <option value="solid">Solid</option>
+            <option value="dashed">Dashed</option>
+            <option value="dotted">Dotted</option>
+            <option value="double">Double</option>
+            <option value="groove">Groove</option>
+            <option value="ridge">Ridge</option>
+          </select>
+        </div>
+        <div class="themer-row">
+          <label class="themer-label">Border Radius</label>
+          <div class="themer-range-row">
+            <input type="range" id="themer-border-radius" class="themer-range" min="0" max="50" value="0" />
+            <span class="themer-range-val" id="themer-border-radius-val">0px</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Spacing ─────────────────────────────────────────── -->
+      <div class="themer-section">
+        <div class="themer-section-title">Spacing</div>
+        <div class="themer-row">
+          <label class="themer-label">Padding</label>
+          <div class="themer-range-row">
+            <input type="range" id="themer-padding" class="themer-range" min="0" max="80" value="0" />
+            <span class="themer-range-val" id="themer-padding-val">0px</span>
+          </div>
+        </div>
+        <div class="themer-row">
+          <label class="themer-label">Margin</label>
+          <div class="themer-range-row">
+            <input type="range" id="themer-margin" class="themer-range" min="0" max="80" value="0" />
+            <span class="themer-range-val" id="themer-margin-val">0px</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Shadow ──────────────────────────────────────────── -->
+      <div class="themer-section">
+        <div class="themer-section-title">Shadow</div>
+        <div class="themer-row">
+          <label class="themer-label">Shadow X</label>
+          <div class="themer-range-row">
+            <input type="range" id="themer-shadow-x" class="themer-range" min="-50" max="50" value="0" />
+            <span class="themer-range-val" id="themer-shadow-x-val">0px</span>
+          </div>
+        </div>
+        <div class="themer-row">
+          <label class="themer-label">Shadow Y</label>
+          <div class="themer-range-row">
+            <input type="range" id="themer-shadow-y" class="themer-range" min="-50" max="50" value="4" />
+            <span class="themer-range-val" id="themer-shadow-y-val">4px</span>
+          </div>
+        </div>
+        <div class="themer-row">
+          <label class="themer-label">Blur</label>
+          <div class="themer-range-row">
+            <input type="range" id="themer-shadow-blur" class="themer-range" min="0" max="100" value="12" />
+            <span class="themer-range-val" id="themer-shadow-blur-val">12px</span>
+          </div>
+        </div>
+        <div class="themer-row">
+          <label class="themer-label">Spread</label>
+          <div class="themer-range-row">
+            <input type="range" id="themer-shadow-spread" class="themer-range" min="-50" max="50" value="0" />
+            <span class="themer-range-val" id="themer-shadow-spread-val">0px</span>
+          </div>
+        </div>
+        <div class="themer-color-row">
+          <label class="themer-color-label">Shadow Color</label>
+          <div class="themer-color-wrapper">
+            <input type="color" id="themer-color-shadow" class="themer-color-picker" value="#000000" />
+            <input type="text" id="themer-color-shadow-hex" class="themer-color-hex" value="#000000" maxlength="7" />
+          </div>
+        </div>
+        <div class="themer-row">
+          <label class="themer-label">Opacity</label>
+          <div class="themer-range-row">
+            <input type="range" id="themer-shadow-opacity" class="themer-range" min="0" max="100" value="10" />
+            <span class="themer-range-val" id="themer-shadow-opacity-val">10%</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Gradient ────────────────────────────────────────── -->
+      <div class="themer-section">
+        <div class="themer-section-title">Gradient Background</div>
+        <div class="themer-row">
+          <label class="themer-label">Type</label>
+          <select id="themer-gradient-type" class="themer-select">
+            <option value="none">None (Solid)</option>
+            <option value="linear">Linear</option>
+            <option value="radial">Radial</option>
+          </select>
+        </div>
+        <div id="themer-gradient-controls" hidden>
+          <div class="themer-color-row">
+            <label class="themer-color-label">Start Color</label>
+            <div class="themer-color-wrapper">
+              <input type="color" id="themer-grad-start" class="themer-color-picker" value="#1a1a1a" />
+              <input type="text" id="themer-grad-start-hex" class="themer-color-hex" value="#1a1a1a" maxlength="7" />
+            </div>
+          </div>
+          <div class="themer-color-row">
+            <label class="themer-color-label">End Color</label>
+            <div class="themer-color-wrapper">
+              <input type="color" id="themer-grad-end" class="themer-color-picker" value="#4a4a5a" />
+              <input type="text" id="themer-grad-end-hex" class="themer-color-hex" value="#4a4a5a" maxlength="7" />
+            </div>
+          </div>
+          <div class="themer-row">
+            <label class="themer-label">Angle</label>
+            <div class="themer-range-row">
+              <input type="range" id="themer-grad-angle" class="themer-range" min="0" max="360" value="135" />
+              <span class="themer-range-val" id="themer-grad-angle-val">135°</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Preset Palettes ──────────────────────────────────── -->
+      <div class="themer-section">
+        <div class="themer-section-title">Preset Palettes</div>
+        <div class="palette-grid" id="palette-grid"></div>
+      </div>
+
+      <!-- ── Opacity ─────────────────────────────────────────── -->
+      <div class="themer-section">
+        <div class="themer-section-title">Opacity</div>
+        <div class="themer-row">
+          <label class="themer-label">Element Opacity</label>
+          <div class="themer-range-row">
+            <input type="range" id="themer-opacity" class="themer-range" min="0" max="100" value="100" />
+            <span class="themer-range-val" id="themer-opacity-val">100%</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── CSS Filters ─────────────────────────────────────── -->
+      <div class="themer-section">
+        <div class="themer-section-title">CSS Filters</div>
+        <div class="themer-row">
+          <label class="themer-label">Blur</label>
+          <div class="themer-range-row">
+            <input type="range" id="themer-filter-blur" class="themer-range" min="0" max="50" value="0" />
+            <span class="themer-range-val" id="themer-filter-blur-val">0px</span>
+          </div>
+        </div>
+        <div class="themer-row">
+          <label class="themer-label">Brightness</label>
+          <div class="themer-range-row">
+            <input type="range" id="themer-filter-brightness" class="themer-range" min="0" max="300" value="100" />
+            <span class="themer-range-val" id="themer-filter-brightness-val">100%</span>
+          </div>
+        </div>
+        <div class="themer-row">
+          <label class="themer-label">Contrast</label>
+          <div class="themer-range-row">
+            <input type="range" id="themer-filter-contrast" class="themer-range" min="0" max="300" value="100" />
+            <span class="themer-range-val" id="themer-filter-contrast-val">100%</span>
+          </div>
+        </div>
+        <div class="themer-row">
+          <label class="themer-label">Saturate</label>
+          <div class="themer-range-row">
+            <input type="range" id="themer-filter-saturate" class="themer-range" min="0" max="300" value="100" />
+            <span class="themer-range-val" id="themer-filter-saturate-val">100%</span>
+          </div>
+        </div>
+        <div class="themer-row">
+          <label class="themer-label">Grayscale</label>
+          <div class="themer-range-row">
+            <input type="range" id="themer-filter-grayscale" class="themer-range" min="0" max="100" value="0" />
+            <span class="themer-range-val" id="themer-filter-grayscale-val">0%</span>
+          </div>
+        </div>
+        <div class="themer-row">
+          <label class="themer-label">Hue Rotate</label>
+          <div class="themer-range-row">
+            <input type="range" id="themer-filter-hue" class="themer-range" min="0" max="360" value="0" />
+            <span class="themer-range-val" id="themer-filter-hue-val">0°</span>
+          </div>
+        </div>
+        <div class="themer-row">
+          <label class="themer-label">Invert</label>
+          <div class="themer-range-row">
+            <input type="range" id="themer-filter-invert" class="themer-range" min="0" max="100" value="0" />
+            <span class="themer-range-val" id="themer-filter-invert-val">0%</span>
+          </div>
+        </div>
+        <div class="themer-row">
+          <label class="themer-label">Sepia</label>
+          <div class="themer-range-row">
+            <input type="range" id="themer-filter-sepia" class="themer-range" min="0" max="100" value="0" />
+            <span class="themer-range-val" id="themer-filter-sepia-val">0%</span>
+          </div>
+        </div>
+        <div class="themer-row">
+          <label class="themer-label">Filter Opacity</label>
+          <div class="themer-range-row">
+            <input type="range" id="themer-filter-opacity" class="themer-range" min="0" max="100" value="100" />
+            <span class="themer-range-val" id="themer-filter-opacity-val">100%</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Generated CSS ───────────────────────────────────── -->
+      <div class="themer-section">
+        <div class="themer-section-title">Generated CSS</div>
+        <div class="themer-css-output" id="themer-css-output">/* Select a target element to start styling */</div>
+        <button class="themer-btn" id="themer-copy-css" title="Copy CSS to clipboard">⎘ Copy CSS</button>
+        <button class="themer-btn themer-btn-apply" id="themer-apply-css" title="Apply to CSS editor">⬆ Apply to CSS Tab</button>
+      </div>
+
+      <!-- ── Reset ───────────────────────────────────────────── -->
+      <div class="themer-section">
+        <button class="themer-btn themer-btn-danger" id="themer-reset">↺ Reset All Styles</button>
+      </div>
+
+    </div>
+  </aside>
+  <!-- ── Themer Backdrop (mobile) ────────────────────────────── -->
+  <div id="themer-backdrop" class="themer-backdrop" hidden></div>
+
+  <!-- ── Image Manager Slide-Out Panel ────────────────────────── -->
+  <aside id="image-panel" class="themer-panel" hidden>
+    <div class="themer-header">
+      <span class="themer-header-title">🖼️ Image Manager</span>
+      <button class="themer-close" id="image-panel-close" title="Close">✕</button>
+    </div>
+    <div class="themer-body">
+
+      <!-- ── Storage Info ────────────────────────────────────── -->
+      <div class="themer-section">
+        <div class="themer-section-title">Storage</div>
+        <div id="image-storage-info" class="image-storage-info">
+          <span id="image-storage-used">0 B</span> used
+          <span id="image-storage-total"></span>
+        </div>
+        <div class="image-storage-bar">
+          <div class="image-storage-fill" id="image-storage-fill"></div>
+        </div>
+      </div>
+
+      <!-- ── Upload Zone ─────────────────────────────────────── -->
+      <div class="themer-section">
+        <div class="themer-section-title">Upload Images</div>
+        <div class="image-upload-zone" id="image-upload-zone">
+          <div class="image-upload-icon">📁</div>
+          <div class="image-upload-text">Drag & drop images here</div>
+          <div class="image-upload-sub">or click to browse</div>
+          <div class="image-upload-formats">PNG, JPG, GIF, WebP, SVG, AVIF</div>
+        </div>
+        <input type="file" id="image-file-input" accept="image/*" multiple hidden />
+      </div>
+
+      <!-- ── Image Grid ──────────────────────────────────────── -->
+      <div class="themer-section">
+        <div class="themer-section-title">
+          Stored Images
+          <span id="image-count" style="color:var(--text-muted);font-weight:400;">(0)</span>
+        </div>
+        <div class="image-grid" id="image-grid">
+          <div class="image-grid-empty" id="image-grid-empty">
+            No images yet. Upload some to get started!
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Image Actions (shown when selected) ─────────────── -->
+      <div class="themer-section" id="image-actions" hidden>
+        <div class="themer-section-title" id="image-selected-name">Selected</div>
+        <div class="image-meta" id="image-meta"></div>
+        <button class="themer-btn themer-btn-apply" id="image-insert-btn">⬆ Insert into HTML</button>
+        <button class="themer-btn" id="image-copy-url-btn">⎘ Copy as URL</button>
+        <button class="themer-btn themer-btn-danger" id="image-delete-btn">🗑 Delete</button>
+      </div>
+
+    </div>
+  </aside>
+  <!-- ── Image Panel Backdrop ────────────────────────────────── -->
+  <div id="image-panel-backdrop" class="themer-backdrop" hidden></div>
+
+  <!-- ── Scripts ─────────────────────────────────────────────── -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/xml/xml.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/css/css.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/javascript/javascript.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/htmlmixed/htmlmixed.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/edit/closebrackets.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/edit/matchbrackets.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/hint/show-hint.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/hint/html-hint.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/hint/css-hint.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/hint/javascript-hint.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/comment/comment.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/search/search.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/search/searchcursor.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/dialog/dialog.min.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/hint/show-hint.min.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/dialog/dialog.min.css" />
+
+  <script type="module" src="./js/app.js"></script>
+</body>
+</html>

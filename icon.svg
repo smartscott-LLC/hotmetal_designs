@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="80" fill="#1a1a1a"/>
+  <text x="256" y="200" font-family="monospace" font-size="160" fill="#c0c0c0"
+        text-anchor="middle" dominant-baseline="middle">⬡</text>
+  <text x="256" y="340" font-family="monospace" font-size="90" fill="#b8860b"
+        text-anchor="middle" dominant-baseline="middle">H</text>
+  <circle cx="150" cy="340" r="18" fill="#b8860b"/>
+  <circle cx="362" cy="340" r="18" fill="#b8860b"/>
+  <line x1="168" y1="340" x2="220" y2="340" stroke="#c0c0c0" stroke-width="6"/>
+  <line x1="292" y1="340" x2="344" y2="340" stroke="#c0c0c0" stroke-width="6"/>
+</svg>

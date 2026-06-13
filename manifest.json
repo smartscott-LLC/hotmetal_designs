@@ -1,0 +1,19 @@
+{
+  "name": "SmarTools HTML Studio",
+  "short_name": "HTML Studio",
+  "description": "AI-powered visual HTML builder — code on the left, preview on the right",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#1a1a1a",
+  "theme_color": "#1a1a1a",
+  "orientation": "any",
+  "icons": [
+    {
+      "src": "./icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["developer tools", "productivity"]
+}
