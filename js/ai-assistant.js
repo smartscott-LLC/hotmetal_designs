@@ -28,9 +28,7 @@ const ICON_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
 
 /* ── Module state ────────────────────────────────────────────── */
 let _messages         = [];
-let _getEditorContent = null;
-let _setEditorContent = null;
-let _updateStatus     = null;
+let _studio           = null;
 let _isStreaming      = false;
 let _expanded         = false;
 let _showingSettings  = false;
@@ -124,13 +122,36 @@ function _initDrag() {
 /* ── OpenRouter API ──────────────────────────────────────────── */
 
 function _buildSystemPrompt() {
-  const code = _getEditorContent ? _getEditorContent() : '';
+  const code = _studio ? _studio.editor.getActiveContent() : '';
   return `You are an expert HTML/CSS/JavaScript AI assistant embedded in SmarTools HTML Studio — a local-first PWA HTML builder. Help users create, edit, and understand web pages and components.
 
 ## Current code in the editor:
 \`\`\`
 ${code || '(empty — no code yet)'}
 \`\`\`
+
+## Your capabilities (via the studio controller):
+- studio.editor.getActiveContent() — read current tab content
+- studio.editor.setActiveContent(code) — replace active tab content
+- studio.editor.getTabContent(tab) — read any tab ('html'/'css'/'js')
+- studio.editor.setTabContent(tab, code) — set any tab
+- studio.editor.getAllContents() — get {html, css, js}
+- studio.editor.setAllContents({html, css, js}) — set all tabs
+- studio.editor.switchTab(tab) — switch active tab
+- studio.editor.getSelection() — get selected text
+- studio.editor.getRange(from, to) — get text between positions
+- studio.editor.replaceRange(text, from, to) — replace a range
+- studio.editor.insertAtCursor(text) — insert at cursor
+- studio.editor.undo() / studio.editor.redo() — undo/redo
+- studio.editor.getLine(n) / studio.editor.lineCount() — line access
+- studio.editor.getCursor() — cursor position
+- studio.editor.execCommand(name) — run CodeMirror commands ('toggleComment', etc.)
+- studio.preview.render() — refresh preview
+- studio.preview.buildCombinedHtml() — build standalone HTML
+- studio.vault.saveFile(name) / studio.vault.loadFile(name) — file I/O
+- studio.templates.getAll() / studio.templates.applyTemplate(id) — templates
+- studio.snippets.getAll() / studio.snippets.search(q) / studio.snippets.insertById(id) — snippets
+- studio.status.report(level, msg) — report status ('ok'/'warning'/'error')
 
 ## Rules:
 - Always wrap code in appropriate \`\`\`html, \`\`\`css, or \`\`\`javascript code blocks
@@ -140,14 +161,9 @@ ${code || '(empty — no code yet)'}
 - Suggest modern, accessible, semantic HTML
 - Use CSS custom properties and modern layout techniques (flexbox, grid)
 - Prefer vanilla JS over frameworks unless asked
-
-## SmarTools HTML Studio features you may reference:
-- Three editor tabs: HTML, CSS, and JavaScript
-- Live preview pane that updates as you type
-- Templates: landing page, dashboard, contact form, portfolio, pricing table, card, navbar
-- Snippets library for quick code insertion
-- Vault: OPFS local file storage — projects never leave the device
-- Export: standalone HTML file with all assets inlined`;
+- Use studio.editor.setActiveContent() to apply code changes
+- Use studio.status.report('ok', 'message') to confirm actions to the user
+- Use studio.editor.undo() if you make a mistake and need to revert`;
 }
 
 async function _testKey() {
@@ -427,11 +443,11 @@ function _handleFileSelect(file) {
   const allowed = ['.html', '.css', '.js', '.md', '.txt', '.json'];
   const ext = '.' + file.name.split('.').pop().toLowerCase();
   if (!allowed.includes(ext)) {
-    if (_updateStatus) _updateStatus('warning', `File type "${ext}" not supported`);
+    if (_studio) _studio.status.report('warning', `File type "${ext}" not supported`);
     return;
   }
   if (file.size > ATTACH_MAX_BYTES) {
-    if (_updateStatus) _updateStatus('warning', `File too large (max 100 KB)`);
+    if (_studio) _studio.status.report('warning', `File too large (max 100 KB)`);
     return;
   }
   const reader = new FileReader();
@@ -567,15 +583,11 @@ function _buildWidget() {
 /**
  * Initialise the AI floating widget.
  * @param {{
- *   getEditorContent : () => string,
- *   setEditorContent : (code: string) => void,
- *   updateStatus?    : (level: string, message: string) => void,
+ *   studio : import('./studio-controller.js').StudioController,
  * }} options
  */
-export function initAIAssistant({ getEditorContent, setEditorContent, updateStatus }) {
-  _getEditorContent = getEditorContent;
-  _setEditorContent = setEditorContent;
-  _updateStatus     = updateStatus || null;
+export function initAIAssistant({ studio: _studio }) {
+  _studio = _studio;
 
   _widget = _buildWidget();
   document.body.appendChild(_widget);
@@ -669,9 +681,9 @@ export function initAIAssistant({ getEditorContent, setEditorContent, updateStat
 
     if (applyBtn) {
       const code = applyBtn.dataset.code;
-      if (_setEditorContent) {
-        _setEditorContent(code);
-        if (_updateStatus) _updateStatus('ok', 'AI code applied to editor');
+      if (_studio) {
+        _studio.editor.setActiveContent(code);
+        _studio.status.report('ok', 'AI code applied to editor');
       }
       return;
     }
