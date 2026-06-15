@@ -820,7 +820,7 @@ export function createStudioController(dom) {
     closeSmartBar();
     editorCtrl.insertAtCursor(snippet.code);
     if (_statusCb) _statusCb('ok', `Inserted: ${snippet.label}`);
-  }
+  };
 
   /* ==========================================================
      PUBLIC API — the controller object
@@ -867,7 +867,7 @@ export function createStudioController(dom) {
       statusCtrl.report('error', `Studio init failed: ${err.message}`);
       throw err;
     }
-  }
+  };
 
   /** Get current tab contents snapshot. */
   function getTabContents() {
