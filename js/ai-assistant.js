@@ -120,17 +120,37 @@ function _initDrag() {
 }
 
 /* ── OpenRouter API ──────────────────────────────────────────── */
-
 function _buildSystemPrompt() {
-  const code = _studio ? _studio.editor.getActiveContent() : '';
+  const all = _studio?.editor?.getAllContents?.() || {
+    html: '',
+    css: '',
+    js: '',
+  };
+
+  const activeTab = _studio?.editor?.getActiveTab?.() || 'html';
+
   return `You are an expert HTML/CSS/JavaScript AI assistant embedded in SmarTools HTML Studio — a local-first PWA HTML builder. Help users create, edit, and understand web pages and components.
 
-## Current code in the editor:
-\`\`\`
-${code || '(empty — no code yet)'}
+## Current project tabs
+
+### HTML tab
+\`\`\`html
+${all.html || '(empty)'}
 \`\`\`
 
-## Your capabilities (via the studio controller):
+### CSS tab
+\`\`\`css
+${all.css || '(empty)'}
+\`\`\`
+
+### JavaScript tab
+\`\`\`javascript
+${all.js || '(empty)'}
+\`\`\`
+
+Active tab: \`${activeTab}\`
+
+## Your capabilities via the studio controller:
 - studio.editor.getActiveContent() — read current tab content
 - studio.editor.setActiveContent(code) — replace active tab content
 - studio.editor.getTabContent(tab) — read any tab ('html'/'css'/'js')
@@ -145,25 +165,23 @@ ${code || '(empty — no code yet)'}
 - studio.editor.undo() / studio.editor.redo() — undo/redo
 - studio.editor.getLine(n) / studio.editor.lineCount() — line access
 - studio.editor.getCursor() — cursor position
-- studio.editor.execCommand(name) — run CodeMirror commands ('toggleComment', etc.)
+- studio.editor.execCommand(name) — run CodeMirror commands
 - studio.preview.render() — refresh preview
 - studio.preview.buildCombinedHtml() — build standalone HTML
 - studio.vault.saveFile(name) / studio.vault.loadFile(name) — file I/O
 - studio.templates.getAll() / studio.templates.applyTemplate(id) — templates
 - studio.snippets.getAll() / studio.snippets.search(q) / studio.snippets.insertById(id) — snippets
-- studio.status.report(level, msg) — report status ('ok'/'warning'/'error')
+- studio.status.report(level, msg) — report status
 
 ## Rules:
 - Always wrap code in appropriate \`\`\`html, \`\`\`css, or \`\`\`javascript code blocks
-- Be concise and helpful; keep responses focused
-- When rewriting a whole page, provide the complete valid HTML/CSS/JS
-- For partial edits, describe which parts change
-- Suggest modern, accessible, semantic HTML
-- Use CSS custom properties and modern layout techniques (flexbox, grid)
-- Prefer vanilla JS over frameworks unless asked
-- Use studio.editor.setActiveContent() to apply code changes
-- Use studio.status.report('ok', 'message') to confirm actions to the user
-- Use studio.editor.undo() if you make a mistake and need to revert`;
+- Be concise and helpful
+- When rewriting a whole page, provide complete valid HTML/CSS/JS
+- For partial edits, describe what changed
+- Prefer modern semantic HTML, CSS custom properties, flexbox/grid, and vanilla JS
+- Use studio.editor.setTabContent(tab, code) when changing a specific tab
+- Use studio.editor.setAllContents({html, css, js}) when changing multiple tabs
+- Use studio.status.report('ok', 'message') to confirm actions`;
 }
 
 async function _testKey() {
@@ -459,6 +477,49 @@ function _handleFileSelect(file) {
   reader.readAsText(file);
 }
 
+function _applyCodeToStudio(code, lang = '') {
+  if (!_studio?.editor) return;
+
+  const normalizedLang = lang.toLowerCase();
+
+  if (normalizedLang === 'css') {
+    _studio.editor.setTabContent('css', code);
+    _studio.status.report('ok', 'AI CSS applied to CSS tab');
+    return;
+  }
+
+  if (normalizedLang === 'javascript' || normalizedLang === 'js') {
+    _studio.editor.setTabContent('js', code);
+    _studio.status.report('ok', 'AI JavaScript applied to JS tab');
+    return;
+  }
+
+  if (normalizedLang === 'html' || /^<!doctype|<html/i.test(code.trim())) {
+    const styleMatch = code.match(/<style[^>]*>([\s\S]*?)<\/style>/i);
+    const scriptMatch = code.match(/<script(?!\s*src)[^>]*>([\s\S]*?)<\/script>/i);
+
+    const css = styleMatch ? styleMatch[1].trim() : '';
+    const js = scriptMatch ? scriptMatch[1].trim() : '';
+
+    const cleanHtml = code
+      .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
+      .replace(/<script(?!\s*src)[^>]*>[\s\S]*?<\/script>/gi, '')
+      .trim();
+
+    _studio.editor.setAllContents({
+      html: cleanHtml,
+      css,
+      js,
+    });
+
+    _studio.status.report('ok', 'AI HTML applied across tabs');
+    return;
+  }
+
+  _studio.editor.setActiveContent(code);
+  _studio.status.report('ok', 'AI code applied to editor');
+}
+
 /* ── Send message ────────────────────────────────────────────── */
 async function _handleSend() {
   if (_isStreaming) return;
@@ -586,8 +647,33 @@ function _buildWidget() {
  *   studio : import('./studio-controller.js').StudioController,
  * }} options
  */
-export function initAIAssistant({ studio: _studio }) {
-  _studio = _studio;
+export function initAIAssistant({ studio } = {}) {
+  if (_widget && document.getElementById('ai-widget')) {
+    if (studio) _studio = studio;
+    return _widget;
+  }
+
+  _studio = studio || window.studio || null;
+
+  window.aiAssistant = {
+    ping() {
+      return {
+        ok: true,
+        hasStudio: !!_studio,
+        model: _getModel(),
+        widgetMounted: !!_widget,
+      };
+    },
+
+    setStudio(nextStudio) {
+      _studio = nextStudio;
+      return !!_studio;
+    },
+
+    getStudio() {
+      return _studio;
+    },
+  };
 
   _widget = _buildWidget();
   document.body.appendChild(_widget);
@@ -681,12 +767,11 @@ export function initAIAssistant({ studio: _studio }) {
 
     if (applyBtn) {
       const code = applyBtn.dataset.code;
-      if (_studio) {
-        _studio.editor.setActiveContent(code);
-        _studio.status.report('ok', 'AI code applied to editor');
-      }
+      const lang = applyBtn.parentElement?.querySelector('.ai-code-lang')?.textContent || '';
+      _applyCodeToStudio(code, lang);
       return;
     }
+
 
     if (copyBtn) {
       navigator.clipboard.writeText(copyBtn.dataset.code).then(() => {

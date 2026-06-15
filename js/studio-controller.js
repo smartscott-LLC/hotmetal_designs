@@ -90,6 +90,7 @@ export function createStudioController(dom) {
   let isDirty = false;
   let vaultReady = false;
   let editor = null;
+  let _initialised = false;
 
   /* ── Undo/Redo (50 steps per tab) ─────────────────────────── */
   const MAX_HISTORY = 50;
@@ -826,7 +827,57 @@ export function createStudioController(dom) {
      ========================================================== */
   /** @typedef {typeof editorCtrl & typeof previewCtrl & typeof vaultCtrl & typeof smartbarCtrl & typeof themerCtrl & typeof imagePanelCtrl & typeof templatesCtrl & typeof snippetsCtrl & typeof statusCtrl & typeof fileCtrl & { init: () => Promise<void>, getTabContents: () => TabContents }} StudioController */
 
+  /**
+   * Initialise all modules.
+   * Call this once after creating the controller.
+   * @param {Object} [opts]
+   * @param {boolean} [opts.awaitVault=false] — if true, blocks until vault is ready
+   */
+  async init(opts = {}) {
+    if (_initialised) return;
+
+    const awaitVault = opts.awaitVault ?? false;
+
+    try {
+      editorCtrl.init();
+      previewCtrl.init();
+      themerCtrl.init();
+      imagePanelCtrl.init();
+      smartbarCtrl.init();
+
+      if (awaitVault) {
+        try {
+          await vaultCtrl.init();
+        } catch (err) {
+          console.warn('[Studio] Vault init failed:', err);
+          statusCtrl.report('warning', 'Vault unavailable');
+        }
+      } else {
+        void vaultCtrl.init().catch((err) => {
+          console.warn('[Studio] Vault init failed:', err);
+          statusCtrl.report('warning', 'Vault unavailable');
+        });
+      }
+
+      _initialised = true;
+      statusCtrl.report('ok', 'Studio initialized');
+    } catch (err) {
+      _initialised = false;
+      console.error('[Studio] Init failed:', err);
+      statusCtrl.report('error', `Studio init failed: ${err.message}`);
+      throw err;
+    }
+  }
+
+  /** Get current tab contents snapshot. */
+  function getTabContents() {
+    return { ...tabContents };
+  }
+
+  /* ── Assemble & return the controller ─────────────────────── */
   const studio = {
+    init,
+    getTabContents,
     editor: editorCtrl,
     preview: previewCtrl,
     vault: vaultCtrl,
@@ -837,24 +888,6 @@ export function createStudioController(dom) {
     snippets: snippetsCtrl,
     status: statusCtrl,
     file: fileCtrl,
-
-    /** Convenience: get all tab contents. */
-    getTabContents() {
-      return editorCtrl.getAllContents();
-    },
-
-    /**
-     * Initialise all modules.
-     * Call this once after creating the controller.
-     */
-    async init() {
-      editorCtrl.init();
-      previewCtrl.init();
-      themerCtrl.init();
-      imagePanelCtrl.init();
-      smartbarCtrl.init();
-      await vaultCtrl.init();
-    },
   };
 
   return studio;

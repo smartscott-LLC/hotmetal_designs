@@ -4,10 +4,12 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="description" content="SmarTools HTML Studio — AI-powered visual HTML builder" />
-  <meta name="theme-color" content="#1a1a1a" />
+  <meta name="theme-color" content="#1a1a1a" media="(prefers-color-scheme: dark)" />
+  <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)" />
   <title>SmarTools HTML Studio</title>
   <link rel="manifest" href="./manifest.json" />
   <link rel="icon" type="image/svg+xml" href="./icon.svg" />
+  <link rel="apple-touch-icon" href="./icon.svg" />
   <link rel="stylesheet" href="./css/app.css" />
   <link rel="stylesheet" href="./css/ai-widget.css" />
   <link rel="stylesheet" href="./css/themer.css" />
@@ -68,7 +70,8 @@
 
     <!-- Divider -->
     <div id="divider" class="divider" role="separator" aria-orientation="vertical"
-         aria-label="Resize panels" tabindex="0"></div>
+         aria-label="Resize panels" aria-valuenow="50" aria-valuemin="20" aria-valuemax="80"
+         tabindex="0"></div>
 
     <!-- Preview Pane -->
     <section id="preview-pane" class="pane preview-pane">
@@ -958,5 +961,6 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/dialog/dialog.min.css" />
 
   <script type="module" src="./js/app.js"></script>
+  <script type="module" src="./js/init.js"></script>
 </body>
 </html>
