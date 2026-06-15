@@ -14,15 +14,15 @@
 
 /* ── Orb Mode ───────────────────────────────────────────────── */
 .ai-orb-mode {
-  width: 52px;
-  height: 52px;
+  width: 60px;
+  height: 60px;
   cursor: grab;
 }
 .ai-orb-mode:active { cursor: grabbing; }
 
 .ai-orb-face {
-  width: 52px;
-  height: 52px;
+  width: 60px;
+  height: 60px;
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -35,7 +35,7 @@
   animation: ai-orb-pulse 3s ease-in-out infinite;
 }
 .ai-orb-face:hover {
-  box-shadow: 0 0 40px rgba(184,134,11,0.8), 0 4px 20px rgba(0,0,0,0.6);
+  box-shadow: 0 0 60px rgba(184,134,11,0.8), 0 4px 20px rgba(0,0,0,0.6);
   transform: scale(1.1);
   animation: none;
 }
@@ -76,9 +76,9 @@
 
 /* ── Box Mode (Expanded) ────────────────────────────────────── */
 .ai-box-mode {
-  width: 380px;
+  width: 450px;
   max-width: 90vw;
-  height: 520px;
+  height: 650px;
   max-height: 70vh;
 }
 

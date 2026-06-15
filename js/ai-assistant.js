@@ -1,8 +1,8 @@
 /* ============================================================
    SmarTools HTML Studio — AI Assistant Module
    Floating orb/box interface powered by OpenRouter.
-   - Orb: 48px diameter, gold gradient, draggable
-   - Box: 380px × 520px, dark bg, gold accents
+   - Orb: 60px diameter, gold gradient, draggable
+   - Box: 450px × 650px, dark bg, gold accents
    - Model: openrouter/owl-alpha (default)
    - API key stored in localStorage; user provides their own key
    ============================================================ */
@@ -10,8 +10,10 @@
 const AI_KEY_STORE   = 'htmlstudio-ai-api-key';
 const AI_MODEL_STORE = 'htmlstudio-ai-model';
 const AI_POS_STORE   = 'htmlstudio-ai-position';
-const DEFAULT_MODEL  = 'openrouter/owl-alpha';
-const OPENROUTER_API = 'https://openrouter.ai/api/v1';
+const DEFAULT_MODEL       = 'openrouter/owl-alpha';
+const OPENROUTER_API      = 'https://openrouter.ai/api/v1';
+const MESSAGE_HISTORY_MAX = 50;
+const CODE_STORE_MAX      = 200;
 
 /* Inline icon */
 const ICON_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
@@ -35,6 +37,29 @@ let _showingSettings  = false;
 let _didDrag          = false;
 let _widget           = null;
 let _pendingFile      = null;
+let _streamAbort      = null;
+const _codeStore      = new Map();
+let _codeId           = 0;
+
+const _api = {
+  ping() {
+    return {
+      ok: true,
+      hasStudio: !!_studio,
+      model: _getModel(),
+      widgetMounted: !!_widget,
+    };
+  },
+
+  setStudio(nextStudio) {
+    _studio = nextStudio;
+    return !!_studio;
+  },
+
+  getStudio() {
+    return _studio;
+  },
+};
 
 /* ── HTML escaping ───────────────────────────────────────────── */
 function _esc(str) {
@@ -59,6 +84,34 @@ function _loadPos() {
 
 function _savePos(x, y) {
   localStorage.setItem(AI_POS_STORE, JSON.stringify({ x, y }));
+}
+
+function _trimMessages() {
+  if (_messages.length > MESSAGE_HISTORY_MAX) {
+    _messages = _messages.slice(-MESSAGE_HISTORY_MAX);
+  }
+}
+
+function _storeCode(code) {
+  const id = String(++_codeId);
+  _codeStore.set(id, code);
+  if (_codeStore.size > CODE_STORE_MAX) {
+    const oldest = _codeStore.keys().next().value;
+    _codeStore.delete(oldest);
+  }
+  return id;
+}
+
+function _abortStream() {
+  _streamAbort?.abort();
+}
+
+function _setSendButtonStreaming(streaming) {
+  const sendBtn = document.getElementById('ai-btn-send');
+  if (!sendBtn) return;
+  sendBtn.disabled = false;
+  sendBtn.title = streaming ? 'Stop' : 'Send (Enter)';
+  sendBtn.setAttribute('aria-label', streaming ? 'Stop' : 'Send');
 }
 
 /* ── Position & drag ─────────────────────────────────────────── */
@@ -107,16 +160,22 @@ function _initDrag() {
     _applyPos(x, y);
   });
 
-  _widget.addEventListener('pointerup', () => {
+  const endDrag = (e, expandOnClick) => {
     if (!dragging) return;
     const wasDragging = _didDrag;
     dragging = false;
     _didDrag = false;
+    if (e?.pointerId != null) {
+      try { _widget.releasePointerCapture(e.pointerId); } catch { /* ok */ }
+    }
     _savePos(_widget.offsetLeft, _widget.offsetTop);
-    if (!wasDragging && !_expanded) {
+    if (expandOnClick && !wasDragging && !_expanded) {
       _expand();
     }
-  });
+  };
+
+  _widget.addEventListener('pointerup', (e) => endDrag(e, true));
+  _widget.addEventListener('pointercancel', (e) => endDrag(e, false));
 }
 
 /* ── OpenRouter API ──────────────────────────────────────────── */
@@ -193,7 +252,7 @@ async function _testKey() {
     if (resultEl) resultEl.textContent = '❌ No key entered.';
     return;
   }
-  if (resultEl) resultEl.textContent = `⏳ Testing key …${key.slice(-6)}`;
+  if (resultEl) resultEl.textContent = '⏳ Testing key…';
 
   try {
     const res = await fetch(`${OPENROUTER_API}/chat/completions`, {
@@ -229,6 +288,7 @@ async function _callAPI(userText, onChunk, onDone, onError) {
   }
 
   _messages.push({ role: 'user', content: userText });
+  _trimMessages();
 
   const payload = {
     model: _getModel(),
@@ -241,9 +301,14 @@ async function _callAPI(userText, onChunk, onDone, onError) {
 
   let accumulated = '';
 
+  _streamAbort?.abort();
+  const abort = new AbortController();
+  _streamAbort = abort;
+
   try {
     const res = await fetch(`${OPENROUTER_API}/chat/completions`, {
       method: 'POST',
+      signal: abort.signal,
       headers: {
         'Content-Type':   'application/json',
         'Authorization':  `Bearer ${apiKey}`,
@@ -271,25 +336,31 @@ async function _callAPI(userText, onChunk, onDone, onError) {
     const reader  = res.body.getReader();
     const decoder = new TextDecoder();
     let streamError = null;
+    let sseBuffer   = '';
+    let doneStreaming = false;
 
     while (true) {
       const { done, value } = await reader.read();
       if (done) break;
 
-      const raw   = decoder.decode(value, { stream: true });
-      const lines = raw.split('\n');
+      sseBuffer += decoder.decode(value, { stream: true });
+      const lines = sseBuffer.split('\n');
+      sseBuffer = lines.pop() || '';
 
       for (const line of lines) {
         if (!line.startsWith('data: ')) continue;
         const data = line.slice(6).trim();
-        if (data === '[DONE]') break;
+        if (data === '[DONE]') {
+          doneStreaming = true;
+          break;
+        }
         try {
           const parsed = JSON.parse(data);
           if (parsed.error) {
             streamError = parsed.error.message || JSON.stringify(parsed.error);
             break;
           }
-          const delta  = parsed.choices?.[0]?.delta?.content || '';
+          const delta = parsed.choices?.[0]?.delta?.content || '';
           if (delta) {
             accumulated += delta;
             onChunk(accumulated);
@@ -297,16 +368,31 @@ async function _callAPI(userText, onChunk, onDone, onError) {
         } catch { /* ignore malformed SSE frames */ }
       }
 
-      if (streamError) break;
+      if (streamError || doneStreaming) break;
     }
 
     if (streamError) throw new Error(`OpenRouter stream error: ${streamError}`);
 
     _messages.push({ role: 'assistant', content: accumulated });
+    _trimMessages();
     onDone(accumulated);
   } catch (err) {
-    _messages.pop();
+    if (err.name === 'AbortError') {
+      if (accumulated) {
+        _messages.push({ role: 'assistant', content: accumulated });
+        _trimMessages();
+        onDone(accumulated);
+      } else {
+        onError('Response cancelled.');
+      }
+      return;
+    }
+
+    _messages.push({ role: 'assistant', content: `[Error: ${err.message}]` });
+    _trimMessages();
     onError(err.message);
+  } finally {
+    if (_streamAbort === abort) _streamAbort = null;
   }
 }
 
@@ -334,13 +420,14 @@ function _renderContent(text) {
 
     const isCode = ['html', 'css', 'javascript', 'js'].includes(p.lang);
     const codeEsc = _esc(p.content);
+    const codeId = _storeCode(p.content);
     return `<div class="ai-code-block">
       <div class="ai-code-header">
         <span class="ai-code-lang">${_esc(p.lang || 'code')}</span>
         ${isCode
-          ? `<button class="ai-btn-apply" data-code="${codeEsc}">⬆ Apply to Editor</button>`
+          ? `<button class="ai-btn-apply" data-code-id="${codeId}">⬆ Apply to Editor</button>`
           : ''}
-        <button class="ai-btn-copy" data-code="${codeEsc}">⎘ Copy</button>
+        <button class="ai-btn-copy" data-code-id="${codeId}">⎘ Copy</button>
       </div>
       <pre class="ai-code-pre"><code>${codeEsc}</code></pre>
     </div>`;
@@ -410,6 +497,7 @@ function _expand() {
 
 function _collapse() {
   if (!_expanded) return;
+  if (_isStreaming) _abortStream();
   _expanded = false;
   _widget.classList.remove('ai-box-mode');
   _widget.classList.add('ai-orb-mode');
@@ -477,6 +565,16 @@ function _handleFileSelect(file) {
   reader.readAsText(file);
 }
 
+function _extractInlineBlocks(code, pattern) {
+  const parts = [];
+  const re = new RegExp(pattern.source, pattern.flags.includes('g') ? pattern.flags : `${pattern.flags}g`);
+  let m;
+  while ((m = re.exec(code)) !== null) {
+    parts.push(m[1].trim());
+  }
+  return parts.join('\n\n');
+}
+
 function _applyCodeToStudio(code, lang = '') {
   if (!_studio?.editor) return;
 
@@ -484,22 +582,21 @@ function _applyCodeToStudio(code, lang = '') {
 
   if (normalizedLang === 'css') {
     _studio.editor.setTabContent('css', code);
+    _studio.editor.switchTab('css');
     _studio.status.report('ok', 'AI CSS applied to CSS tab');
     return;
   }
 
   if (normalizedLang === 'javascript' || normalizedLang === 'js') {
     _studio.editor.setTabContent('js', code);
+    _studio.editor.switchTab('js');
     _studio.status.report('ok', 'AI JavaScript applied to JS tab');
     return;
   }
 
   if (normalizedLang === 'html' || /^<!doctype|<html/i.test(code.trim())) {
-    const styleMatch = code.match(/<style[^>]*>([\s\S]*?)<\/style>/i);
-    const scriptMatch = code.match(/<script(?!\s*src)[^>]*>([\s\S]*?)<\/script>/i);
-
-    const css = styleMatch ? styleMatch[1].trim() : '';
-    const js = scriptMatch ? scriptMatch[1].trim() : '';
+    const css = _extractInlineBlocks(code, /<style[^>]*>([\s\S]*?)<\/style>/i);
+    const js  = _extractInlineBlocks(code, /<script(?!\s*src)[^>]*>([\s\S]*?)<\/script>/i);
 
     const cleanHtml = code
       .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
@@ -511,6 +608,7 @@ function _applyCodeToStudio(code, lang = '') {
       css,
       js,
     });
+    _studio.editor.switchTab('html');
 
     _studio.status.report('ok', 'AI HTML applied across tabs');
     return;
@@ -522,7 +620,10 @@ function _applyCodeToStudio(code, lang = '') {
 
 /* ── Send message ────────────────────────────────────────────── */
 async function _handleSend() {
-  if (_isStreaming) return;
+  if (_isStreaming) {
+    _abortStream();
+    return;
+  }
   const input = document.getElementById('ai-chat-input');
   if (!input) return;
   const text = input.value.trim();
@@ -544,22 +645,21 @@ async function _handleSend() {
 
   const streamId = `ai-stream-${Date.now()}`;
   const streamEl = _appendMessage('assistant', '…', streamId);
-  const sendBtn  = document.getElementById('ai-btn-send');
 
   _isStreaming = true;
-  if (sendBtn) sendBtn.disabled = true;
+  _setSendButtonStreaming(true);
 
   await _callAPI(
     fullText,
     (full) => { _updateStreamEl(streamEl, full); },
     (full) => {
       _isStreaming = false;
-      if (sendBtn) sendBtn.disabled = false;
+      _setSendButtonStreaming(false);
       _updateStreamEl(streamEl, full);
     },
     (errMsg) => {
       _isStreaming = false;
-      if (sendBtn) sendBtn.disabled = false;
+      _setSendButtonStreaming(false);
       const body = streamEl?.querySelector('.ai-message-body');
       if (body) body.innerHTML = `<span class="ai-error">⚠ ${_esc(errMsg)}</span>`;
     },
@@ -650,30 +750,11 @@ function _buildWidget() {
 export function initAIAssistant({ studio } = {}) {
   if (_widget && document.getElementById('ai-widget')) {
     if (studio) _studio = studio;
-    return _widget;
+    return _api;
   }
 
   _studio = studio || window.studio || null;
-
-  window.aiAssistant = {
-    ping() {
-      return {
-        ok: true,
-        hasStudio: !!_studio,
-        model: _getModel(),
-        widgetMounted: !!_widget,
-      };
-    },
-
-    setStudio(nextStudio) {
-      _studio = nextStudio;
-      return !!_studio;
-    },
-
-    getStudio() {
-      return _studio;
-    },
-  };
+  window.aiAssistant = _api;
 
   _widget = _buildWidget();
   document.body.appendChild(_widget);
@@ -707,6 +788,15 @@ export function initAIAssistant({ studio } = {}) {
   document.getElementById('ai-btn-save-settings').addEventListener('click', () => {
     const k = (document.getElementById('ai-api-key-input').value || '').trim();
     const m = (document.getElementById('ai-model-input').value  || '').trim() || DEFAULT_MODEL;
+    const savedKey = k || _getApiKey();
+
+    if (!savedKey) {
+      if (_studio) _studio.status.report('warning', 'Enter an API key to use the assistant');
+      const resultEl = document.getElementById('ai-test-result');
+      if (resultEl) resultEl.textContent = '❌ API key is required.';
+      return;
+    }
+
     if (k) localStorage.setItem(AI_KEY_STORE, k);
     localStorage.setItem(AI_MODEL_STORE, m);
     _toggleSettings(false);
@@ -722,7 +812,13 @@ export function initAIAssistant({ studio } = {}) {
   });
 
   document.getElementById('ai-btn-clear-history').addEventListener('click', () => {
+    if (_isStreaming) {
+      _abortStream();
+      _isStreaming = false;
+      _setSendButtonStreaming(false);
+    }
     _messages = [];
+    _codeStore.clear();
     const msgs = document.getElementById('ai-chat-messages');
     if (msgs) msgs.innerHTML = '';
     _toggleSettings(false);
@@ -766,15 +862,17 @@ export function initAIAssistant({ studio } = {}) {
     const copyBtn  = e.target.closest('.ai-btn-copy');
 
     if (applyBtn) {
-      const code = applyBtn.dataset.code;
+      const code = _codeStore.get(applyBtn.dataset.codeId);
+      if (code == null) return;
       const lang = applyBtn.parentElement?.querySelector('.ai-code-lang')?.textContent || '';
       _applyCodeToStudio(code, lang);
       return;
     }
 
-
     if (copyBtn) {
-      navigator.clipboard.writeText(copyBtn.dataset.code).then(() => {
+      const code = _codeStore.get(copyBtn.dataset.codeId);
+      if (code == null) return;
+      navigator.clipboard.writeText(code).then(() => {
         copyBtn.textContent = '✓ Copied';
         setTimeout(() => { copyBtn.innerHTML = '⎘ Copy'; }, 1600);
       }).catch(() => {
@@ -789,4 +887,6 @@ export function initAIAssistant({ studio } = {}) {
     _applyPos(x, y);
     _savePos(x, y);
   });
+
+  return _api;
 }

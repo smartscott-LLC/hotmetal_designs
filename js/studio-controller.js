@@ -428,7 +428,7 @@ export function createStudioController(dom) {
         history[tab].stack = [tabContents[tab]];
         history[tab].index = 0;
       }
-      if (editor && activeTab === 'html') editor.setValue(html);
+      if (editor) editor.setValue(tabContents[activeTab]);
       previewCtrl.render();
     },
   };
