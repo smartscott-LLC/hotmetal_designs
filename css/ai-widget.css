@@ -30,8 +30,8 @@
   background: linear-gradient(135deg, #b8860b, #d4a843);
   box-shadow: 0 0 20px rgba(184,134,11,0.4), 0 4px 12px rgba(0,0,0,0.5);
   transition: box-shadow 200ms ease, transform 120ms ease;
-  user-select: none;
   -webkit-user-select: none;
+  user-select: none;
   animation: ai-orb-pulse 3s ease-in-out infinite;
 }
 .ai-orb-face:hover {
@@ -104,8 +104,8 @@
   background: #1a1a1a;
   border-bottom: 1px solid #4a4a5a;
   cursor: grab;
-  user-select: none;
   -webkit-user-select: none;
+  user-select: none;
   flex-shrink: 0;
 }
 .ai-header:active { cursor: grabbing; }
