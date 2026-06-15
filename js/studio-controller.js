@@ -97,7 +97,7 @@ export function createStudioController(dom) {
   const history = {
     html: { stack: [], index: -1, lastContent: '' },
     css:  { stack: [], index: -1, lastContent: '' },
-  js:   { stack: [], index: -1, lastContent: '' },
+    js:   { stack: [], index: -1, lastContent: '' },
   };
 
   let _suppressHistory = false;
@@ -820,7 +820,7 @@ export function createStudioController(dom) {
     closeSmartBar();
     editorCtrl.insertAtCursor(snippet.code);
     if (_statusCb) _statusCb('ok', `Inserted: ${snippet.label}`);
-  };
+  }
 
   /* ==========================================================
      PUBLIC API — the controller object
@@ -833,7 +833,7 @@ export function createStudioController(dom) {
    * @param {Object} [opts]
    * @param {boolean} [opts.awaitVault=false] — if true, blocks until vault is ready
    */
-  async init(opts = {}) {
+  async function init(opts = {}) {
     if (_initialised) return;
 
     const awaitVault = opts.awaitVault ?? false;
@@ -867,7 +867,7 @@ export function createStudioController(dom) {
       statusCtrl.report('error', `Studio init failed: ${err.message}`);
       throw err;
     }
-  };
+  }
 
   /** Get current tab contents snapshot. */
   function getTabContents() {
